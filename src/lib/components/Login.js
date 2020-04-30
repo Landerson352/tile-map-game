@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { Button } from './ui';
-import useAuth from '../lib/useAuth';
+import useAuth from '../hooks/useAuth';
 
 const Login = () => {
   const auth = useAuth();
@@ -10,7 +10,7 @@ const Login = () => {
     <Button
       size="sm"
       variant="outline"
-      onClick={auth.loginWithGoogle}
+      onClick={auth.signIn}
       rightIcon="arrow-forward"
     >
       Login With Google

@@ -6,16 +6,10 @@ import {
   Button,
   Heading,
   Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
   useDisclosure
-} from './ui';
+} from '../lib/components/ui';
 import useGames from '../hooks/useGames';
+import ModalForm from '../lib/components/ModalForm';
 
 const GamesListing = () => {
   const games = useGames();
@@ -31,13 +25,13 @@ const GamesListing = () => {
   return (
     <ul>
       {map(games.data, (game) => (
-        <li key={game.id}>{game.name}</li>
+        <li key={game.id}>{game.name || 'Untitled game'}</li>
       ))}
     </ul>
   );
 };
 
-function NewGameModal() {
+const NewGameModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
   const games = useGames();
@@ -51,25 +45,22 @@ function NewGameModal() {
   return (
     <>
       <Button onClick={onOpen}>New game</Button>
-
-      <Modal isOpen={isOpen} onClose={onClose} size="xs">
-        <ModalOverlay />
-        <ModalContent>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <ModalHeader>New game</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Input name="name" placeholder="Untitled Game" ref={register({ maxLength: 30 })} autoFocus />
-            </ModalBody>
-            <ModalFooter>
-              <Button name="name" type="submit">Save</Button>
-            </ModalFooter>
-          </form>
-        </ModalContent>
-      </Modal>
+      <ModalForm
+        title="New game"
+        isOpen={isOpen}
+        onClose={onClose}
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        <Input
+          name="name"
+          placeholder="Untitled Game"
+          ref={register({ maxLength: 30 })}
+          autoFocus
+        />
+      </ModalForm>
     </>
   );
-}
+};
 
 const Games = () => (
   <>

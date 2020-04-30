@@ -1,14 +1,16 @@
 import React from 'react';
 
 import { Avatar, Button } from './ui';
-import useAuth from '../lib/useAuth';
+import useAuth from '../hooks/useAuth';
 
 const AccountMenu = () => {
   const auth = useAuth();
 
-  if (!auth.isLoaded || auth.isEmpty) {
+  if (!auth.isLoaded || !auth.user) {
     return null;
   }
+
+  const { displayName, photoURL } = auth.user;
 
   return (
     <>
@@ -20,8 +22,8 @@ const AccountMenu = () => {
       >
         Log out
       </Button>
-      <p>Logged in as {auth.displayName}</p>
-      <Avatar src={auth.photoURL} name={auth.displayName} />
+      <p>Logged in as {displayName}</p>
+      <Avatar src={photoURL} name={displayName} />
     </>
   );
 };

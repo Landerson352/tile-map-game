@@ -1,17 +1,15 @@
 import React from 'react';
 
-import AccountMenu from './components/AccountMenu';
-import ReactReduxFirebaseProvider from './ReactReduxFirebaseProvider';
+import './lib/firebase';
+import AccountMenu from './lib/components/AccountMenu';
 import Router from './Router';
-import { ThemeProvider } from './components/ui';
+import { ThemeProvider } from './lib/components/ui';
 
 const App = () => (
-  <ReactReduxFirebaseProvider>
-    <ThemeProvider>
-      <AccountMenu />
-      <Router />
-    </ThemeProvider>
-  </ReactReduxFirebaseProvider>
+  <ThemeProvider>
+    <AccountMenu />
+    <Router />
+  </ThemeProvider>
 );
 
 export default App;

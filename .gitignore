@@ -27,3 +27,6 @@ yarn-error.log*
 .env
 .env.build
 .now
+
+# Firebase
+firebaseConfig.js

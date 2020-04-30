@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Switch, } from 'react-router-dom';
 
 import createPrivateRoute from './lib/createPrivateRoute';
-import Login from './components/Login';
+import Login from './lib/components/Login';
 import Games from './components/Games';
 
 const PrivateRoute = createPrivateRoute(Login);
