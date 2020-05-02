@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {
   Button,
   Modal,
@@ -9,7 +8,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay
-} from './ui';
+} from '@chakra-ui/core';
 
 const ModalForm = (props) => {
   const {

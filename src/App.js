@@ -1,15 +1,21 @@
 import React from 'react';
+import firebase from 'firebase/app';
 
-import './lib/firebase';
+import firebaseConfig from './firebaseConfig';
+import { AuthProvider } from './lib/useAuth';
 import AccountMenu from './lib/components/AccountMenu';
 import Router from './Router';
-import { ThemeProvider } from './lib/components/ui';
+import ThemeProvider from './components/ThemeProvider';
+
+firebase.initializeApp(firebaseConfig);
 
 const App = () => (
-  <ThemeProvider>
-    <AccountMenu />
-    <Router />
-  </ThemeProvider>
+  <AuthProvider>
+    <ThemeProvider>
+      <AccountMenu />
+      <Router />
+    </ThemeProvider>
+  </AuthProvider>
 );
 
 export default App;

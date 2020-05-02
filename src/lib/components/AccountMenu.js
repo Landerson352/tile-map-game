@@ -1,7 +1,7 @@
 import React from 'react';
+import { Avatar, Button } from '@chakra-ui/core';
 
-import { Avatar, Button } from './ui';
-import useAuth from '../hooks/useAuth';
+import useAuth from '../useAuth';
 
 const AccountMenu = () => {
   const auth = useAuth();
@@ -17,7 +17,7 @@ const AccountMenu = () => {
       <Button
         size="sm"
         variant="outline"
-        onClick={auth.logout}
+        onClick={auth.signOut}
         rightIcon="arrow-forward"
       >
         Log out

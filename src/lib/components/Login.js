@@ -1,11 +1,10 @@
 import React from 'react';
+import { Button } from '@chakra-ui/core';
 
-import { Button } from './ui';
-import useAuth from '../hooks/useAuth';
+import useAuth from '../useAuth';
 
 const Login = () => {
   const auth = useAuth();
-
   return (
     <Button
       size="sm"

@@ -1,11 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Switch, } from 'react-router-dom';
+import { BrowserRouter, Switch } from 'react-router-dom';
 
-import createPrivateRoute from './lib/createPrivateRoute';
-import Login from './lib/components/Login';
+import PrivateRoute from './lib/components/PrivateRoute';
 import Games from './components/Games';
-
-const PrivateRoute = createPrivateRoute(Login);
 
 const Router = () => (
   <BrowserRouter>

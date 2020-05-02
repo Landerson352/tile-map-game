@@ -1,24 +1,24 @@
 import React from 'react';
-import { isEmpty, map } from 'lodash';
+import { map } from 'lodash';
 import { useForm } from 'react-hook-form';
-
 import {
   Button,
   Heading,
   Input,
   useDisclosure
-} from '../lib/components/ui';
-import useGames from '../hooks/useGames';
+} from '@chakra-ui/core';
+
 import ModalForm from '../lib/components/ModalForm';
+import GameEntity from '../entities/GameEntity';
 
 const GamesListing = () => {
-  const games = useGames();
+  const games = GameEntity.useCollectionData();
 
   if (!games.loaded) {
     return <p>Loading...</p>;
   }
 
-  if (isEmpty(games.data)) {
+  if (games.isEmpty) {
     return <p>No games found.</p>;
   }
 
@@ -34,13 +34,8 @@ const GamesListing = () => {
 const NewGameModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
-  const games = useGames();
 
-  const onSubmit = (data) => {
-    games.add(data).then(() => {
-      onClose();
-    });
-  };
+  const onSubmit = (data) => GameEntity.add(data).then(onClose);
 
   return (
     <>
