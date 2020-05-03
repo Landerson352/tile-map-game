@@ -53,6 +53,7 @@ export const useAddGame = () => {
       hostUserId: auth.user.uid,
     });
     await joinGame(game.id);
+    return game;
   };
 };
 
@@ -102,5 +103,11 @@ export const useMyUser = () => {
 
   return useDocumentData(
     db().collection('users').doc(auth.user.uid)
+  );
+};
+
+export const useUser = (userId) => {
+  return useDocumentData(
+    db().collection('users').doc(userId)
   );
 };

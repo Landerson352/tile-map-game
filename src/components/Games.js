@@ -1,45 +1,66 @@
 import React from 'react';
-import { map } from 'lodash';
+import { isEmpty, map } from 'lodash';
 import { useForm } from 'react-hook-form';
 import {
-  Button,
-  Heading,
+  Box,
+  Flex,
+  // Heading,
   Input,
+  Spinner,
+  Stack,
   useDisclosure
 } from '@chakra-ui/core';
-import { useCopyToClipboard } from 'react-use';
-import { Link } from 'react-router-dom';
+// import { useCopyToClipboard } from 'react-use';
+import { useHistory } from 'react-router-dom';
 
-import ModalForm from '../lib/components/ModalForm';
+// import useAuth from '../lib/useAuth';
+import Button from './Button';
+import SimpleModal from '../lib/components/SimpleModal';
 import {
   useAddGame,
   useJoinGame,
   useMyGames,
+  useMyUser,
+  // useUser
 } from '../db';
+// import AccountMenu from '../components/AccountMenu';
+import useAuth from '../lib/useAuth';
 
-const CopyButton = (props) => {
-  const { text } = props;
-  const [state, copyToClipboard] = useCopyToClipboard();
-
-  let icon = 'copy';
-  if (state.error) icon = 'warning-2';
-  else if (state.value) icon = 'check';
-
-  return (
-    <Button
-      rightIcon={icon}
-      onClick={() => copyToClipboard(text)}
-    >
-      copy
-    </Button>
-  );
-};
+// const HostOptions = (props) => {
+//   const { game } = props;
+//   const auth = useAuth();
+//   const host = useUser(game.hostUserId);
+//   const [state, copyToClipboard] = useCopyToClipboard();
+//
+//   let icon = 'copy';
+//   if (state.error) icon = 'warning-2';
+//   else if (state.value) icon = 'check';
+//
+//   if (!host.loaded) return null;
+//
+//   const hostIsMe = game.hostUserId === auth.user.uid;
+//
+//   if (!hostIsMe) return `Host: ${host.data.displayName}`;
+//
+//   return (
+//     <Button
+//       rightIcon={icon}
+//       onClick={() => copyToClipboard(game.id)}
+//       variant="outline"
+//       size="xs"
+//       variantColor="green"
+//     >
+//       copy invitation code
+//     </Button>
+//   );
+// };
 
 const GamesListing = () => {
+  const history = useHistory();
   const games = useMyGames();
 
   if (!games.loaded) {
-    return <p>Loading...</p>;
+    return <Spinner />;
   }
 
   if (games.isEmpty) {
@@ -47,50 +68,46 @@ const GamesListing = () => {
   }
 
   return (
-    <table>
-      <thead>
-      <tr>
-        {/*<th>ID</th>*/}
-        <th>Name</th>
-        <th>Host</th>
-        <th>Players</th>
-        <th>Invitation</th>
-      </tr>
-      </thead>
-      <tbody>
-      {map(games.data, (game) => (
-        <tr key={game.id}>
-          {/*<td>{game.id}</td>*/}
-          <td><Link to={`game/${game.id}`}>{game.name}</Link></td>
-          <td>{game.host}</td>
-          <td>{game.userIds.length}</td>
-          <td><CopyButton text={game.id} /></td>
-        </tr>
+    <Stack>
+      {map(games.data, (game, i) => (
+        <Button
+          key={game.id}
+          onClick={() => history.push(`game/${game.id}`)}
+          variant="outline"
+          size="lg"
+          variantColor="green"
+          autoFocus={i === 0}
+        >
+          <Stack isInline justifyContent="space-between" width="100%">
+            <Box>{game.name}</Box>
+            <Box>{game.userIds.length} players</Box>
+          </Stack>
+        </Button>
       ))}
-      </tbody>
-    </table>
-
+    </Stack>
   );
 };
 
-const NewGameModal = () => {
+const NewGameModal = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
   const addGame = useAddGame();
+  const history = useHistory();
 
   const onSubmit = async (values) => {
-    await addGame(values);
-    onClose();
+    const game = await addGame(values);
+    history.push(`game/${game.id}`);
   };
 
   return (
     <>
-      <Button onClick={onOpen}>New game</Button>
-      <ModalForm
-        title="New game"
+      <Button {...props} onClick={onOpen}>New game</Button>
+      <SimpleModal
+        title="Name your game"
         isOpen={isOpen}
         onClose={onClose}
         onSubmit={handleSubmit(onSubmit)}
+        footer={<Button type="submit" rightIcon="arrow-alt-right">Start playing</Button>}
       >
         <Input
           name="name"
@@ -98,49 +115,86 @@ const NewGameModal = () => {
           ref={register({ maxLength: 30, required: 'Required' })}
           autoFocus
         />
-      </ModalForm>
+      </SimpleModal>
     </>
   );
 };
 
-const JoinGameModal = () => {
+const JoinGameModal = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
   const joinGame = useJoinGame();
+  const history = useHistory();
 
   const onSubmit = async (values) => {
-    await joinGame(values.id);
-    onClose();
+    const { gameId } = values;
+    await joinGame(gameId);
+    history.push(`game/${gameId}`);
   };
 
   return (
     <>
-      <Button onClick={onOpen}>Join game</Button>
-      <ModalForm
-        title="Join game"
+      <Button {...props} onClick={onOpen}>Join game</Button>
+      <SimpleModal
+        title="Enter invitation code"
         isOpen={isOpen}
         onClose={onClose}
         onSubmit={handleSubmit(onSubmit)}
+        footer={<Button type="submit" rightIcon="arrow-alt-right">Join game</Button>}
       >
         <Input
-          name="id"
+          name="gameId"
           placeholder="xxxxxxxxxxxx"
           ref={register({ maxLength: 20, required: 'Required' })}
           autoFocus
         />
-      </ModalForm>
+      </SimpleModal>
+    </>
+  );
+};
+
+const LoadGameModal = (props) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const myUser = useMyUser();
+
+  const disabled = !myUser.loaded || isEmpty(myUser.data.gameIds);
+
+  return (
+    <>
+      <Button  {...props} onClick={onOpen} disabled={disabled}>Load game</Button>
+      <SimpleModal
+        title="Saved games"
+        isOpen={isOpen}
+        onClose={onClose}
+      >
+        <GamesListing />
+      </SimpleModal>
     </>
   );
 };
 
 const Games = () => {
+  const auth = useAuth();
+
   return (
-    <>
-      <Heading>Games</Heading>
-      <GamesListing />
-      <NewGameModal />
-      <JoinGameModal />
-    </>
+    <Flex height="100%" alignItems="center" justifyContent="center">
+      <Stack width={220}>
+        <NewGameModal />
+        <LoadGameModal />
+        <JoinGameModal />
+        <Button
+          onClick={auth.signOut}
+          alignSelf="center"
+          variant="outline"
+          size="sm"
+          marginTop={4}
+          minWidth={128}
+          rightIcon="sign-out-alt"
+        >
+          Log out
+        </Button>
+      </Stack>
+    </Flex>
   );
 };
 
