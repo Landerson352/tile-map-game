@@ -5,7 +5,7 @@ import firebaseConfig from './firebaseConfig';
 import { AuthProvider } from './lib/useAuth';
 import AccountMenu from './lib/components/AccountMenu';
 import Router from './Router';
-import ThemeProvider from './components/ThemeProvider';
+import ThemeProvider from './ThemeProvider';
 
 firebase.initializeApp(firebaseConfig);
 

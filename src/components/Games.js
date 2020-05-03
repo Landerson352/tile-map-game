@@ -7,12 +7,36 @@ import {
   Input,
   useDisclosure
 } from '@chakra-ui/core';
+import { useCopyToClipboard } from 'react-use';
+import { Link } from 'react-router-dom';
 
 import ModalForm from '../lib/components/ModalForm';
-import GameEntity from '../entities/GameEntity';
+import {
+  useAddGame,
+  useJoinGame,
+  useMyGames,
+} from '../db';
+
+const CopyButton = (props) => {
+  const { text } = props;
+  const [state, copyToClipboard] = useCopyToClipboard();
+
+  let icon = 'copy';
+  if (state.error) icon = 'warning-2';
+  else if (state.value) icon = 'check';
+
+  return (
+    <Button
+      rightIcon={icon}
+      onClick={() => copyToClipboard(text)}
+    >
+      copy
+    </Button>
+  );
+};
 
 const GamesListing = () => {
-  const games = GameEntity.useCollectionData();
+  const games = useMyGames();
 
   if (!games.loaded) {
     return <p>Loading...</p>;
@@ -23,19 +47,41 @@ const GamesListing = () => {
   }
 
   return (
-    <ul>
+    <table>
+      <thead>
+      <tr>
+        {/*<th>ID</th>*/}
+        <th>Name</th>
+        <th>Host</th>
+        <th>Players</th>
+        <th>Invitation</th>
+      </tr>
+      </thead>
+      <tbody>
       {map(games.data, (game) => (
-        <li key={game.id}>{game.name || 'Untitled game'}</li>
+        <tr key={game.id}>
+          {/*<td>{game.id}</td>*/}
+          <td><Link to={`game/${game.id}`}>{game.name}</Link></td>
+          <td>{game.host}</td>
+          <td>{game.userIds.length}</td>
+          <td><CopyButton text={game.id} /></td>
+        </tr>
       ))}
-    </ul>
+      </tbody>
+    </table>
+
   );
 };
 
 const NewGameModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
+  const addGame = useAddGame();
 
-  const onSubmit = (data) => GameEntity.add(data).then(onClose);
+  const onSubmit = async (values) => {
+    await addGame(values);
+    onClose();
+  };
 
   return (
     <>
@@ -49,7 +95,7 @@ const NewGameModal = () => {
         <Input
           name="name"
           placeholder="Untitled Game"
-          ref={register({ maxLength: 30 })}
+          ref={register({ maxLength: 30, required: 'Required' })}
           autoFocus
         />
       </ModalForm>
@@ -57,12 +103,45 @@ const NewGameModal = () => {
   );
 };
 
-const Games = () => (
-  <>
-    <Heading>Games</Heading>
-    <GamesListing />
-    <NewGameModal />
-  </>
-);
+const JoinGameModal = () => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { register, handleSubmit } = useForm();
+  const joinGame = useJoinGame();
+
+  const onSubmit = async (values) => {
+    await joinGame(values.id);
+    onClose();
+  };
+
+  return (
+    <>
+      <Button onClick={onOpen}>Join game</Button>
+      <ModalForm
+        title="Join game"
+        isOpen={isOpen}
+        onClose={onClose}
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        <Input
+          name="id"
+          placeholder="xxxxxxxxxxxx"
+          ref={register({ maxLength: 20, required: 'Required' })}
+          autoFocus
+        />
+      </ModalForm>
+    </>
+  );
+};
+
+const Games = () => {
+  return (
+    <>
+      <Heading>Games</Heading>
+      <GamesListing />
+      <NewGameModal />
+      <JoinGameModal />
+    </>
+  );
+};
 
 export default Games;

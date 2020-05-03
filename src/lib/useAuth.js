@@ -1,8 +1,17 @@
 import React from 'react';
 import firebase from 'firebase/app';
 import 'firebase/auth';
+import 'firebase/firestore';
+
+const db = firebase.firestore;
 
 const AuthContext = React.createContext({});
+
+export const updateUser = (id, values) => {
+  return db().collection('users').doc(id).set(values, {
+    merge: true
+  });
+};
 
 export const AuthProvider = (props) => {
   const googleAuthProvider = React.useRef(new firebase.auth.GoogleAuthProvider()).current;
@@ -14,6 +23,11 @@ export const AuthProvider = (props) => {
       setUser(user);
       setIsLoaded(true);
       // TODO: set hasLoggedOut to true
+      return updateUser(user.uid, {
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      });
     });
   }, []);
 
