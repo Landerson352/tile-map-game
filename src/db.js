@@ -57,8 +57,6 @@ export const useAddGame = () => {
 };
 
 export const useGame = (gameId) => {
-  const auth = useAuth();
-
   return useDocumentData(
     db().collection('games').doc(gameId)
   );
