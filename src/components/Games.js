@@ -156,7 +156,7 @@ const LoadGameButton = (props) => {
 
   return (
     <>
-      <Button  {...props} onClick={onOpen} disabled={disabled}>Load game</Button>
+      <Button {...props} onClick={onOpen} disabled={disabled}>Load game</Button>
       <SimpleModal
         title="Saved games"
         isOpen={isOpen}

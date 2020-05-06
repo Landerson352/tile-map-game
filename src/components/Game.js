@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Avatar,
   AvatarBadge,
+  Box,
   Spinner,
   Stack,
   Text,
@@ -18,6 +19,7 @@ import {
   useIncrementGameTurn,
   useMyTurnCallback,
 } from '../db';
+import usePanZoom from '../lib/useSvgPanZoom';
 
 const Players = (props) => {
   const { gameId } = props;
@@ -125,8 +127,9 @@ const useMyTurnToaster = (gameId) => {
 
 const Game = (props) => {
   const { gameId } = props.match.params;
-  useMyTurnToaster(gameId);
   const game = useGame(gameId);
+  const svgRef = usePanZoom();
+  useMyTurnToaster(gameId);
 
   if (!game.loaded) {
     return <p>Loading...</p>;
@@ -138,9 +141,21 @@ const Game = (props) => {
 
   return (
     <>
-      <InvitationButton gameId={gameId} />
-      <Players gameId={gameId} />
-      <AdvanceTurnTester gameId={gameId} />
+      <Box as="svg" id="svg-viewport" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
+        <g ref={svgRef}>
+          <circle
+            r={15}
+            fill="white"
+            stroke="red"
+            strokeWidth={3}
+          />
+        </g>
+      </Box>
+      <Box position="fixed" bottom={0} left={0} right={0} bg="rgba(255,255,255,0.8)">
+        <InvitationButton gameId={gameId} />
+        <Players gameId={gameId} />
+        <AdvanceTurnTester gameId={gameId} />
+      </Box>
     </>
   );
 };
