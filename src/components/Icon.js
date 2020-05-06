@@ -5,11 +5,19 @@ import { find } from 'lodash';
 
 import {
   faArrowAltRight,
+  faArrowAltToRight,
+  faCheck,
+  faCopy,
+  faExclamationTriangle,
   faSignOutAlt,
 } from '@fortawesome/pro-light-svg-icons';
 
 const icons = [
   faArrowAltRight,
+  faArrowAltToRight,
+  faCheck,
+  faCopy,
+  faExclamationTriangle,
   faSignOutAlt,
 ];
 
@@ -23,8 +31,6 @@ library.add(...icons);
 
 const getIcon = (icon) => {
   if (typeof icon !== 'string') return icon;
-
-  console.log(icons, icon);
 
   const libraryIcon = find(icons, { iconName: icon });
   if (!libraryIcon) return icon;

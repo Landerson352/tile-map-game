@@ -1,12 +1,14 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import useAuth, { updateUser } from './lib/useAuth';
+import { get } from 'lodash';
+import { usePrevious } from 'react-use';
 
+import useAuth, { updateUser } from './lib/useAuth';
 import useCollectionData from './lib/useCollectionData';
 import useDocumentData from './lib/useDocumentData';
 
 const db = firebase.firestore;
-const { arrayUnion } = firebase.firestore.FieldValue;
+const { arrayUnion, increment } = firebase.firestore.FieldValue;
 
 export const addGame = (values) => {
   return db().collection('games').add({
@@ -33,6 +35,14 @@ export const addGameUser = async (gameId, userId, values) => {
   return gameUser;
 };
 
+export const incrementGameUserScore = (gameId, userId, value) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('users')
+    .doc(userId)
+    .set({ score: increment(value) }, { merge: true });
+};
+
 export const removeGame = (id) => {
   return db().collection('games').doc(id).delete();
 };
@@ -41,6 +51,16 @@ export const updateGame = (id, values) => {
   return db().collection('games').doc(id).set(values, {
     merge: true
   });
+};
+
+export const updateGameUser = (gameId, userId, values) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('users')
+    .doc(userId)
+    .set(values, {
+      merge: true
+    });
 };
 
 export const useAddGame = () => {
@@ -77,6 +97,22 @@ export const useGameUsers = (gameId) => {
   );
 };
 
+export const useIncrementGameTurn = (gameId) => {
+  const game = useGame(gameId);
+
+  return () => {
+    if (!game.loaded) return null;
+
+    const { currentTurnUserId, userIds = [] } = game.data;
+    const index = userIds.indexOf(currentTurnUserId);
+    const nextIndex = (index + 1 ) % userIds.length;
+
+    return updateGame(gameId, {
+      currentTurnUserId: userIds[nextIndex],
+    });
+  };
+};
+
 export const useJoinGame = () => {
   const auth  = useAuth();
 
@@ -96,6 +132,32 @@ export const useMyGames = () => {
     db().collection('games')
       .where('userIds', 'array-contains', auth.user.uid)
   );
+};
+
+export const useMyGameUser = (gameId) => {
+  const auth  = useAuth();
+
+  return useDocumentData(
+    db().collection('games')
+      .doc(gameId)
+      .collection('users')
+      .doc(auth.user.uid)
+  );
+};
+
+export const useMyTurnCallback = (gameId, cb) => {
+  const auth = useAuth();
+  const game = useGame(gameId);
+  const authUserId = get(auth, 'user.uid');
+  const currentTurnUserId = get(game, 'data.currentTurnUserId');
+  const previousTurnUserId = usePrevious(currentTurnUserId);
+
+  const isMyTurn = currentTurnUserId === authUserId;
+  const turnChanged = currentTurnUserId !== previousTurnUserId;
+
+  if (turnChanged && isMyTurn) {
+    cb();
+  }
 };
 
 export const useMyUser = () => {

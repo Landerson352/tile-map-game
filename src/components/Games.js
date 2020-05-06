@@ -4,16 +4,13 @@ import { useForm } from 'react-hook-form';
 import {
   Box,
   Flex,
-  // Heading,
   Input,
   Spinner,
   Stack,
   useDisclosure
 } from '@chakra-ui/core';
-// import { useCopyToClipboard } from 'react-use';
 import { useHistory } from 'react-router-dom';
 
-// import useAuth from '../lib/useAuth';
 import Button from './Button';
 import SimpleModal from '../lib/components/SimpleModal';
 import {
@@ -21,9 +18,7 @@ import {
   useJoinGame,
   useMyGames,
   useMyUser,
-  // useUser
 } from '../db';
-// import AccountMenu from '../components/AccountMenu';
 import useAuth from '../lib/useAuth';
 
 // const HostOptions = (props) => {
@@ -88,7 +83,7 @@ const GamesListing = () => {
   );
 };
 
-const NewGameModal = (props) => {
+const NewGameButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
   const addGame = useAddGame();
@@ -120,7 +115,7 @@ const NewGameModal = (props) => {
   );
 };
 
-const JoinGameModal = (props) => {
+const JoinGameButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
   const joinGame = useJoinGame();
@@ -153,7 +148,7 @@ const JoinGameModal = (props) => {
   );
 };
 
-const LoadGameModal = (props) => {
+const LoadGameButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const myUser = useMyUser();
 
@@ -179,9 +174,9 @@ const Games = () => {
   return (
     <Flex height="100%" alignItems="center" justifyContent="center">
       <Stack width={220}>
-        <NewGameModal />
-        <LoadGameModal />
-        <JoinGameModal />
+        <NewGameButton />
+        <LoadGameButton />
+        <JoinGameButton />
         <Button
           onClick={auth.signOut}
           alignSelf="center"
