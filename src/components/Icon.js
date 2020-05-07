@@ -7,18 +7,24 @@ import {
   faArrowAltRight,
   faArrowAltToRight,
   faCheck,
+  faCog,
   faCopy,
   faExclamationTriangle,
+  faPowerOff,
   faSignOutAlt,
+  faUserPlus,
 } from '@fortawesome/pro-light-svg-icons';
 
 const icons = [
   faArrowAltRight,
   faArrowAltToRight,
   faCheck,
+  faCog,
   faCopy,
   faExclamationTriangle,
+  faPowerOff,
   faSignOutAlt,
+  faUserPlus,
 ];
 
 library.add(...icons);
