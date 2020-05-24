@@ -2,13 +2,15 @@ import React from 'react';
 import {
   Avatar,
   // AvatarBadge,
-  Box,
+  Box, Flex,
+  // Modal,
+  // ModalContent,
   Spinner,
   Stack,
   Text, useDisclosure,
   useToast,
 } from '@chakra-ui/core';
-import { map } from 'lodash';
+import { find, map, times } from 'lodash';
 import { useCopyToClipboard } from 'react-use';
 import SimpleModal from '../lib/components/SimpleModal';
 import { Link } from 'react-router-dom';
@@ -18,10 +20,14 @@ import IconButton from './IconButton';
 import {
   // incrementGameUserScore,
   useGame,
+  // useGameTiles,
   useGameUsers,
-  // useIncrementGameTurn,
+  useIncrementGameTurn,
+  useMyGameTiles,
   useMyTurnCallback,
+  useStartGame,
 } from '../db';
+import useAppState from '../useAppState';
 import usePanZoom from '../lib/useSvgPanZoom';
 
 const playerColors = [
@@ -45,9 +51,13 @@ const Players = (props) => {
     <Spinner />
   );
 
+  const usersInTurnOrder = map(game.data.userIds, (id) => {
+    return find(users.data, { id });
+  });
+
   return (
     <Stack isInline spacing={4} {...restProps}>
-      {map(users.data, (user, i) => {
+      {map(usersInTurnOrder, (user, i) => {
         const firstName = user.displayName.split(' ')[0];
         const isCurrentTurn = (user.id === game.data.currentTurnUserId);
         const color = playerColors[i];
@@ -123,22 +133,38 @@ const InvitationButton = (props) => {
 //   );
 // };
 
-// const AdvanceTurnTester = (props) => {
-//   const { gameId } = props;
-//   const game = useGame(gameId);
-//   const incrementGameTurn = useIncrementGameTurn(gameId);
-//
-//   if (!game.loaded) return null;
-//
-//   return (
-//     <Button
-//       onClick={incrementGameTurn}
-//       rightIcon="arrow-alt-to-right"
-//     >
-//       {game.data.currentTurnUserId ? 'End turn' : 'Start game'}
-//     </Button>
-//   );
-// };
+const AdvanceTurnTester = (props) => {
+  const { gameId } = props;
+  const game = useGame(gameId);
+  const incrementGameTurn = useIncrementGameTurn(gameId);
+
+  if (!game.loaded) return null;
+
+  return (
+    <Button
+      onClick={incrementGameTurn}
+      rightIcon="arrow-alt-to-right"
+    >
+      {game.data.currentTurnUserId ? 'End turn' : 'Start game'}
+    </Button>
+  );
+};
+
+const StartGameButton = (props) => {
+  const { gameId } = props;
+  const startGame = useStartGame(gameId);
+
+  return (
+    <Button
+      onClick={startGame}
+      rightIcon="arrow-alt-to-right"
+      size="lg"
+      variantColor="green"
+    >
+      Start game
+    </Button>
+  );
+};
 
 const useMyTurnToaster = (gameId) => {
   const toast = useToast();
@@ -173,38 +199,143 @@ const AddPlayerButton = (props) => {
   );
 };
 
+const ResetGameButton = (props) => {
+  const { gameId, ...restProps } = props;
+  const startGame = useStartGame(gameId);
+
+  return (
+    <IconButton {...restProps} onClick={startGame} />
+  );
+};
+
+const TileWrapper = (props) => {
+  const { size = 100, tileData = {}, ...restProps } = props;
+  const { x = 4.5, y = 4.5 } = tileData;
+
+  const transforms = [
+    `translate(${(x - 4.5) * size}px, ${(y - 4.5) * size}px)`,
+    `scale(${size / 100})`,
+  ];
+
+  return (
+    <g style={{ transform: transforms.join(' ') }} {...restProps} />
+  );
+};
+
+const Tile = (props) => {
+  const { tileData } = props;
+  const [, { setTileFocus }] = useAppState();
+  const handleClick = () => {
+    setTileFocus(tileData);
+  };
+
+  return (
+    <TileWrapper onClick={handleClick}  {...props}>
+      <rect width={100} height={100} fill="green" stroke="green" strokeWidth={2} />
+    </TileWrapper>
+  );
+};
+
+const TileSocket = (props) => {
+  return (
+    <TileWrapper {...props}>
+      <rect width={100} height={100} fill="transparent" stroke="#ddd" strokeWidth={1} />
+    </TileWrapper>
+  );
+};
+
+const TileFocusRing = (props) => {
+  return (
+    <TileWrapper {...props}>
+      <rect width={108} height={108} x={-4} y={-4} rx={2} fill="transparent" stroke="red" strokeWidth={4} />
+    </TileWrapper>
+  );
+};
+
 const Game = (props) => {
   const { gameId } = props.match.params;
+
   const game = useGame(gameId);
+  const tiles = useMyGameTiles(gameId);
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
+  const [{ tileFocus }] = useAppState();
 
-  if (!game.loaded) {
+  if (!game.loaded || !tiles.loaded) {
     return <p>Loading...</p>;
   }
 
   if (game.isEmpty) {
-    return <p>No games found.</p>;
+    return <p>No game info found.</p>;
   }
+
+  const gameHasStarted = game.data.currentTurnUserId;
 
   return (
     <>
-      <Box as="svg" id="svg-viewport" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
-        <g ref={svgRef}>
-          <circle
-            r={15}
-            fill="white"
-            stroke="red"
-            strokeWidth={3}
-          />
-        </g>
-      </Box>
+      {gameHasStarted ? (
+        <>
+          <Box viewBox="-1000 -1000 2000 2000" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
+            <g ref={svgRef}>
+              {times(10, (y) => (
+                <React.Fragment key={y}>
+                  {times(10, (x) => (
+                    <TileSocket
+                      key={x}
+                      tileData={{
+                        x,
+                        y,
+                      }}
+                    />
+                  ))}
+                </React.Fragment>
+              ))}
+              {times(2, (y) => (
+                <React.Fragment key={y}>
+                  {times(2, (x) => (
+                    <Tile
+                      key={x}
+                      tileData={{
+                        x,
+                        y,
+                      }}
+                    />
+                  ))}
+                </React.Fragment>
+              ))}
+              {!!tileFocus && (
+                <TileFocusRing
+                  tileData={tileFocus}
+                />
+              )}
+            </g>
+          </Box>
+          <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
+            <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4}>
+              {map(tiles.data, (tile, i) => (
+                <Box key={i}>
+                  <svg width={100} height={100}>
+                    <Tile />
+                  </svg>
+                </Box>
+              ))}
+            </Stack>
+          </Stack>
+        </>
+      ) : (
+        <Flex height="100%" alignItems="center" justifyContent="center">
+          <Stack width={220}>
+            <StartGameButton gameId={gameId} />
+          </Stack>
+        </Flex>
+      )}
       <Stack isInline justifyContent="center" position="fixed" top={2} left={0} right={0}>
         <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" py={2} px={4} rounded={36} pointerEvents="all" spacing={3}>
           <Players gameId={gameId} marginRight={16} />
           <AddPlayerButton gameId={gameId} icon="user-plus" isRound />
+          <ResetGameButton gameId={gameId} icon="redo-alt" isRound />
           <IconButton as={Link} to="/" icon="power-off" isRound />
-          {/*<AdvanceTurnTester gameId={gameId} />*/}
+          <AdvanceTurnTester gameId={gameId} />
         </Stack>
       </Stack>
     </>

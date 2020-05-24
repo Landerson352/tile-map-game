@@ -1,6 +1,7 @@
+import React from 'react';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { get } from 'lodash';
+import { get, isEmpty, map, sample, times } from 'lodash';
 import { usePrevious } from 'react-use';
 
 import useAuth, { updateUser } from './lib/useAuth';
@@ -83,6 +84,25 @@ export const useGame = (gameId) => {
   );
 };
 
+export const useGameTiles = (gameId) => {
+  return useCollectionData(
+    db().collection('games')
+      .doc(gameId)
+      .collection('tiles')
+  );
+};
+
+export const useMyGameTiles = (gameId) => {
+  const auth = useAuth();
+
+  return useCollectionData(
+    db().collection('games')
+      .doc(gameId)
+      .collection('tiles')
+      .where('userId', '==', auth.user.uid)
+  );
+};
+
 export const useGames = () => {
   return useCollectionData(
     db().collection('games')
@@ -155,9 +175,11 @@ export const useMyTurnCallback = (gameId, cb) => {
   const isMyTurn = currentTurnUserId === authUserId;
   const turnChanged = currentTurnUserId !== previousTurnUserId;
 
-  if (turnChanged && isMyTurn) {
-    cb();
-  }
+  React.useEffect(() => {
+    if (turnChanged && isMyTurn) {
+      cb();
+    }
+  }, [cb, turnChanged, isMyTurn]);
 };
 
 export const useMyUser = () => {
@@ -166,6 +188,68 @@ export const useMyUser = () => {
   return useDocumentData(
     db().collection('users').doc(auth.user.uid)
   );
+};
+
+export const addGameTile = async (gameId, tile) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('tiles')
+    .add(tile);
+};
+
+const dealGameUserTiles = async (gameId, userId) => {
+  const promises = times(7, () => {
+    const tile = {
+      userId: userId,
+      biome: 'forest',
+      road: 'straight',
+      river: 'straight',
+    };
+    return addGameTile(gameId, tile);
+  });
+  return Promise.all(promises);
+};
+
+const removeGameTiles = async (gameId) => {
+  const tiles = await db().collection('games')
+    .doc(gameId)
+    .collection('tiles')
+    .get();
+
+  const promises = map(tiles.docs, ({ id: tileId }) => {
+    return db().collection('games')
+      .doc(gameId)
+      .collection('tiles')
+      .doc(tileId)
+      .delete();
+  });
+
+  return Promise.all(promises);
+};
+
+export const useStartGame = (gameId) => {
+  const game = useGame(gameId);
+
+  return async () => {
+    if (!game.loaded) return null;
+
+    const { userIds } = game.data;
+
+    if (isEmpty(userIds)) return null;
+
+    await removeGameTiles(gameId);
+
+    // Give each user 7 tiles
+    await Promise.all(map(userIds, (userId) => {
+      return dealGameUserTiles(gameId, userId);
+    }));
+
+    await updateGame(gameId, {
+      currentTurnUserId: sample(userIds),
+    });
+
+    return game;
+  };
 };
 
 export const useUser = (userId) => {

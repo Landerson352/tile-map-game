@@ -7,7 +7,7 @@ const createAppState = (initialState = {}, mutators = {}) => {
 
   // create provider
   // sets initial state and uses Immer *as* the reducer
-  const AppStateProvider = ({children}) => (
+  const AppStateProvider = ({ children}) => (
     <Context.Provider value={useReducer(produce, initialState)}>
       {children}
     </Context.Provider>
