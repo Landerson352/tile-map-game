@@ -89,6 +89,7 @@ export const useGameTiles = (gameId) => {
     db().collection('games')
       .doc(gameId)
       .collection('tiles')
+      .where('isPlaced', '==', true)
   );
 };
 
@@ -100,7 +101,22 @@ export const useMyGameTiles = (gameId) => {
       .doc(gameId)
       .collection('tiles')
       .where('userId', '==', auth.user.uid)
+      .where('isPlaced', '==', false)
   );
+};
+
+export const usePlaceTile = (gameId) => {
+  return (tileId, x, y) => db().collection('games')
+    .doc(gameId)
+    .collection('tiles')
+    .doc(tileId)
+    .set({
+      x,
+      y,
+      isPlaced: true,
+    }, {
+      merge: true
+    });
 };
 
 export const useGames = () => {
@@ -201,6 +217,7 @@ const dealGameUserTiles = async (gameId, userId) => {
   const promises = times(7, () => {
     const tile = {
       userId: userId,
+      isPlaced: false,
       biome: 'forest',
       road: 'straight',
       river: 'straight',

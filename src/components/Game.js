@@ -10,21 +10,22 @@ import {
   Text, useDisclosure,
   useToast,
 } from '@chakra-ui/core';
-import { find, map, times } from 'lodash';
+import { find, map, reduce, uniqBy } from 'lodash';
 import { useCopyToClipboard } from 'react-use';
 import SimpleModal from '../lib/components/SimpleModal';
 import { Link } from 'react-router-dom';
+import { useDrag, useDrop } from 'react-dnd';
 
 import Button from './Button';
 import IconButton from './IconButton';
 import {
   // incrementGameUserScore,
   useGame,
-  // useGameTiles,
+  useGameTiles,
   useGameUsers,
   useIncrementGameTurn,
   useMyGameTiles,
-  useMyTurnCallback,
+  useMyTurnCallback, usePlaceTile,
   useStartGame,
 } from '../db';
 import useAppState from '../useAppState';
@@ -210,10 +211,10 @@ const ResetGameButton = (props) => {
 
 const TileWrapper = (props) => {
   const { size = 100, tileData = {}, ...restProps } = props;
-  const { x = 4.5, y = 4.5 } = tileData;
+  const { x = 0.5, y = 0.5 } = tileData;
 
   const transforms = [
-    `translate(${(x - 4.5) * size}px, ${(y - 4.5) * size}px)`,
+    `translate(${(x - 0.5) * size}px, ${(y - 0.5) * size}px)`,
     `scale(${size / 100})`,
   ];
 
@@ -237,18 +238,101 @@ const Tile = (props) => {
 };
 
 const TileSocket = (props) => {
+  const { gameId, x, y } = props;
+  const tileData = { x, y };
+  const placeTile = usePlaceTile(gameId);
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: 'TILE',
+    drop: ({ tileData: { id } }) => {
+      return placeTile(id, x, y)
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop()
+    })
+  });
+
+  let fill = 'transparent';
+  let stroke = '#ddd';
+  if (isOver) {
+    if (canDrop) {
+      fill = 'rgba(0,0,255,0.2)';
+      stroke = 'blue';
+    } else {
+      fill = 'rgba(255,0,0,0.2)';
+      stroke = 'red';
+    }
+  }
+
+  const [, { setTileFocus }] = useAppState();
+  const handleClick = () => {
+    setTileFocus(tileData);
+  };
+
   return (
-    <TileWrapper {...props}>
-      <rect width={100} height={100} fill="transparent" stroke="#ddd" strokeWidth={1} />
+    <TileWrapper tileData={tileData}>
+      <rect
+        ref={drop}
+        width={100}
+        height={100}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={1}
+        onClick={handleClick}
+      />
     </TileWrapper>
   );
 };
 
 const TileFocusRing = (props) => {
+  const { gameId } = props;
+  const [{ tileFocus }] = useAppState();
+  const tiles = useGameTiles(gameId);
+
+  if (!tiles.loaded || !tileFocus) return null;
+
+  const isFocusedTileEmpty = !find(tiles.data, tileFocus);
+
   return (
-    <TileWrapper {...props}>
-      <rect width={108} height={108} x={-4} y={-4} rx={2} fill="transparent" stroke="red" strokeWidth={4} />
+    <TileWrapper tileData={tileFocus}>
+      <rect
+        style={{ pointerEvents: 'none' }}
+        width={108}
+        height={108}
+        x={-4}
+        y={-4}
+        rx={2}
+        fill="transparent"
+        stroke={isFocusedTileEmpty ? 'cyan' : 'red'}
+        strokeWidth={4}
+      />
     </TileWrapper>
+  );
+};
+
+const InventoryTile = (props) => {
+  const { tileData } = props;
+  const [{ isDragging }, drag] = useDrag({
+    item: {
+      type: 'TILE',
+      tileData,
+    },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging()
+    })
+  });
+
+  return (
+    <Box
+      ref={drag}
+      style={{
+        opacity: isDragging ? 0 : 1,
+      }}
+    >
+      <svg width={100} height={100}>
+        <Tile />
+      </svg>
+    </Box>
   );
 };
 
@@ -256,12 +340,12 @@ const Game = (props) => {
   const { gameId } = props.match.params;
 
   const game = useGame(gameId);
-  const tiles = useMyGameTiles(gameId);
+  const myTiles = useMyGameTiles(gameId);
+  const tiles = useGameTiles(gameId);
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
-  const [{ tileFocus }] = useAppState();
 
-  if (!game.loaded || !tiles.loaded) {
+  if (!game.loaded || !myTiles.loaded || !tiles.loaded) {
     return <p>Loading...</p>;
   }
 
@@ -271,53 +355,60 @@ const Game = (props) => {
 
   const gameHasStarted = game.data.currentTurnUserId;
 
+
+  // create sockets near existing tiles
+  const createSocket = (x, y) => ({
+    key: [x, y].join('_'),
+    x,
+    y,
+  });
+  let tileSockets = [];
+  if (tiles.isEmpty) {
+    tileSockets = [createSocket(0, 0)]
+  } else {
+    tileSockets = reduce(tiles.data, (sum, tile) => {
+      const { x, y } = tile;
+      return [
+        ...sum,
+        createSocket(x - 1, y),
+        createSocket(x + 1, y),
+        createSocket(x, y - 1),
+        createSocket(x, y + 1),
+      ];
+    }, []);
+    // remove duplicates
+    tileSockets = uniqBy(tileSockets, 'key');
+  }
+
   return (
     <>
       {gameHasStarted ? (
         <>
-          <Box viewBox="-1000 -1000 2000 2000" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
+          <Box viewBox="-200 -200 400 400" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
             <g ref={svgRef}>
-              {times(10, (y) => (
-                <React.Fragment key={y}>
-                  {times(10, (x) => (
-                    <TileSocket
-                      key={x}
-                      tileData={{
-                        x,
-                        y,
-                      }}
-                    />
-                  ))}
-                </React.Fragment>
-              ))}
-              {times(2, (y) => (
-                <React.Fragment key={y}>
-                  {times(2, (x) => (
-                    <Tile
-                      key={x}
-                      tileData={{
-                        x,
-                        y,
-                      }}
-                    />
-                  ))}
-                </React.Fragment>
-              ))}
-              {!!tileFocus && (
-                <TileFocusRing
-                  tileData={tileFocus}
+              {map(tileSockets, ({ key, x, y }) => (
+                <TileSocket
+                  key={key}
+                  gameId={gameId}
+                  x={x}
+                  y={y}
                 />
-              )}
+              ))}
+              {map(tiles.data, (tile) => (
+                <Tile
+                  key={tile.id}
+                  tileData={tile}
+                />
+              ))}
+              <TileFocusRing
+                gameId={gameId}
+              />
             </g>
           </Box>
           <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
-            <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4}>
-              {map(tiles.data, (tile, i) => (
-                <Box key={i}>
-                  <svg width={100} height={100}>
-                    <Tile />
-                  </svg>
-                </Box>
+            <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
+              {map(myTiles.data, (tile, i) => (
+                <InventoryTile key={i} tileData={tile} />
               ))}
             </Stack>
           </Stack>
