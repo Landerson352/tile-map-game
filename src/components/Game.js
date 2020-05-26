@@ -1,10 +1,7 @@
 import React from 'react';
 import {
   Avatar,
-  // AvatarBadge,
   Box, Flex,
-  // Modal,
-  // ModalContent,
   Spinner,
   Stack,
   Text, useDisclosure,
@@ -19,8 +16,10 @@ import { useDrag, useDrop } from 'react-dnd';
 import Button from './Button';
 import IconButton from './IconButton';
 import {
+  GameIdContext,
   // incrementGameUserScore,
   useGame,
+  useGameId,
   useGameTiles,
   useGameUsers,
   useIncrementGameTurn,
@@ -44,9 +43,9 @@ const playerColors = [
 ];
 
 const Players = (props) => {
-  const { gameId, ...restProps } = props;
-  const game = useGame(gameId);
-  const users = useGameUsers(gameId);
+  const { ...restProps } = props;
+  const game = useGame();
+  const users = useGameUsers();
 
   if (!game.loaded || !users.loaded) return (
     <Spinner />
@@ -67,11 +66,7 @@ const Players = (props) => {
         return (
           <Stack key={user.id} isInline alignItems="center" borderRadius={8} borderWidth={4} borderColor={strokeColor} width={160} bg={bgColor} userSelect="none" position="relative" marginLeft={4}>
             <Box borderRadius="50%" borderWidth={4} borderColor={strokeColor} position="absolute" left={-28}>
-              <Avatar src={user.photoURL} pointerEvents="none">
-                {/*{isCurrentTurn && (*/}
-                {/*  <AvatarBadge size="1em" bg={strokeColor} />*/}
-                {/*)}*/}
-              </Avatar>
+              <Avatar src={user.photoURL} pointerEvents="none" />
               {isCurrentTurn && (
                 <Spinner position="absolute" top={-9} left={-9} size={66} thickness={2} speed="0.5s" color="gray.600" emptyColor="white" opacity={1} />
               )}
@@ -89,7 +84,7 @@ const Players = (props) => {
 };
 
 const InvitationButton = (props) => {
-  const { gameId, ...restProps } = props;
+  const gameId = useGameId();
   const [state, copyToClipboard] = useCopyToClipboard();
 
   let icon = 'copy';
@@ -106,7 +101,7 @@ const InvitationButton = (props) => {
       onClick={() => copyToClipboard(gameId)}
       variant="outline"
       variantColor={variantColor}
-      {...restProps}
+      {...props}
     >
       Copy invitation code
     </Button>
@@ -134,10 +129,9 @@ const InvitationButton = (props) => {
 //   );
 // };
 
-const AdvanceTurnTester = (props) => {
-  const { gameId } = props;
-  const game = useGame(gameId);
-  const incrementGameTurn = useIncrementGameTurn(gameId);
+const AdvanceTurnTester = () => {
+  const game = useGame();
+  const incrementGameTurn = useIncrementGameTurn();
 
   if (!game.loaded) return null;
 
@@ -151,9 +145,8 @@ const AdvanceTurnTester = (props) => {
   );
 };
 
-const StartGameButton = (props) => {
-  const { gameId } = props;
-  const startGame = useStartGame(gameId);
+const StartGameButton = () => {
+  const startGame = useStartGame();
 
   return (
     <Button
@@ -167,9 +160,9 @@ const StartGameButton = (props) => {
   );
 };
 
-const useMyTurnToaster = (gameId) => {
+const useMyTurnToaster = () => {
   const toast = useToast();
-  useMyTurnCallback(gameId, () => {
+  useMyTurnCallback(() => {
     toast({
       title: 'It is your turn!',
       status: 'success',
@@ -179,12 +172,11 @@ const useMyTurnToaster = (gameId) => {
 };
 
 const AddPlayerButton = (props) => {
-  const { gameId, ...restProps } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
     <>
-      <IconButton {...restProps} onClick={onOpen} />
+      <IconButton {...props} onClick={onOpen} />
       <SimpleModal
         title="Invite more players"
         isOpen={isOpen}
@@ -194,18 +186,17 @@ const AddPlayerButton = (props) => {
           Send the invitation code to your friends.
           They can use it in the "Join game" option on the main menu.
         </Text>
-        <InvitationButton gameId={gameId} autoFocus />
+        <InvitationButton autoFocus />
       </SimpleModal>
     </>
   );
 };
 
 const ResetGameButton = (props) => {
-  const { gameId, ...restProps } = props;
-  const startGame = useStartGame(gameId);
+  const startGame = useStartGame();
 
   return (
-    <IconButton {...restProps} onClick={startGame} />
+    <IconButton {...props} onClick={startGame} />
   );
 };
 
@@ -238,9 +229,9 @@ const Tile = (props) => {
 };
 
 const TileSocket = (props) => {
-  const { gameId, x, y } = props;
+  const { x, y } = props;
   const tileData = { x, y };
-  const placeTile = usePlaceTile(gameId);
+  const placeTile = usePlaceTile();
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'TILE',
     drop: ({ tileData: { id } }) => {
@@ -284,10 +275,9 @@ const TileSocket = (props) => {
   );
 };
 
-const TileFocusRing = (props) => {
-  const { gameId } = props;
+const TileFocusRing = () => {
   const [{ tileFocus }] = useAppState();
-  const tiles = useGameTiles(gameId);
+  const tiles = useGameTiles();
 
   if (!tiles.loaded || !tileFocus) return null;
 
@@ -336,14 +326,12 @@ const InventoryTile = (props) => {
   );
 };
 
-const Game = (props) => {
-  const { gameId } = props.match.params;
-
-  const game = useGame(gameId);
-  const myTiles = useMyGameTiles(gameId);
-  const tiles = useGameTiles(gameId);
+const GameView = () => {
+  const game = useGame();
+  const myTiles = useMyGameTiles();
+  const tiles = useGameTiles();
   const svgRef = usePanZoom();
-  useMyTurnToaster(gameId);
+  useMyTurnToaster();
 
   if (!game.loaded || !myTiles.loaded || !tiles.loaded) {
     return <p>Loading...</p>;
@@ -354,7 +342,6 @@ const Game = (props) => {
   }
 
   const gameHasStarted = game.data.currentTurnUserId;
-
 
   // create sockets near existing tiles
   const createSocket = (x, y) => ({
@@ -389,7 +376,6 @@ const Game = (props) => {
               {map(tileSockets, ({ key, x, y }) => (
                 <TileSocket
                   key={key}
-                  gameId={gameId}
                   x={x}
                   y={y}
                 />
@@ -400,9 +386,7 @@ const Game = (props) => {
                   tileData={tile}
                 />
               ))}
-              <TileFocusRing
-                gameId={gameId}
-              />
+              <TileFocusRing />
             </g>
           </Box>
           <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
@@ -416,20 +400,28 @@ const Game = (props) => {
       ) : (
         <Flex height="100%" alignItems="center" justifyContent="center">
           <Stack width={220}>
-            <StartGameButton gameId={gameId} />
+            <StartGameButton />
           </Stack>
         </Flex>
       )}
       <Stack isInline justifyContent="center" position="fixed" top={2} left={0} right={0}>
         <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" py={2} px={4} rounded={36} pointerEvents="all" spacing={3}>
-          <Players gameId={gameId} marginRight={16} />
-          <AddPlayerButton gameId={gameId} icon="user-plus" isRound />
-          <ResetGameButton gameId={gameId} icon="redo-alt" isRound />
+          <Players marginRight={16} />
+          <AddPlayerButton icon="user-plus" isRound />
+          <ResetGameButton icon="redo-alt" isRound />
           <IconButton as={Link} to="/" icon="power-off" isRound />
-          <AdvanceTurnTester gameId={gameId} />
+          <AdvanceTurnTester />
         </Stack>
       </Stack>
     </>
+  );
+};
+
+const Game = (props) => {
+  return (
+    <GameIdContext.Provider value={props.match.params['gameId']}>
+      <GameView />
+    </GameIdContext.Provider>
   );
 };
 

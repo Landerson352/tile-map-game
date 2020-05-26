@@ -11,6 +11,9 @@ import useDocumentData from './lib/useDocumentData';
 const db = firebase.firestore;
 const { arrayUnion, increment } = firebase.firestore.FieldValue;
 
+export const GameIdContext = React.createContext(null);
+export const useGameId = () => React.useContext(GameIdContext);
+
 export const addGame = (values) => {
   return db().collection('games').add({
     name: 'Untitled Game',
@@ -78,13 +81,15 @@ export const useAddGame = () => {
   };
 };
 
-export const useGame = (gameId) => {
+export const useGame = () => {
+  const gameId = useGameId();
   return useDocumentData(
     db().collection('games').doc(gameId)
   );
 };
 
-export const useGameTiles = (gameId) => {
+export const useGameTiles = () => {
+  const gameId = useGameId();
   return useCollectionData(
     db().collection('games')
       .doc(gameId)
@@ -93,8 +98,9 @@ export const useGameTiles = (gameId) => {
   );
 };
 
-export const useMyGameTiles = (gameId) => {
+export const useMyGameTiles = () => {
   const auth = useAuth();
+  const gameId = useGameId();
 
   return useCollectionData(
     db().collection('games')
@@ -105,7 +111,8 @@ export const useMyGameTiles = (gameId) => {
   );
 };
 
-export const usePlaceTile = (gameId) => {
+export const usePlaceTile = () => {
+  const gameId = useGameId();
   return (tileId, x, y) => db().collection('games')
     .doc(gameId)
     .collection('tiles')
@@ -125,7 +132,8 @@ export const useGames = () => {
   );
 };
 
-export const useGameUsers = (gameId) => {
+export const useGameUsers = () => {
+  const gameId = useGameId();
   return useCollectionData(
     db().collection('games')
       .doc(gameId)
@@ -133,7 +141,8 @@ export const useGameUsers = (gameId) => {
   );
 };
 
-export const useIncrementGameTurn = (gameId) => {
+export const useIncrementGameTurn = () => {
+  const gameId = useGameId();
   const game = useGame(gameId);
 
   return () => {
@@ -181,7 +190,8 @@ export const useMyGameUser = (gameId) => {
   );
 };
 
-export const useMyTurnCallback = (gameId, cb) => {
+export const useMyTurnCallback = (cb) => {
+  const gameId = useGameId();
   const auth = useAuth();
   const game = useGame(gameId);
   const authUserId = get(auth, 'user.uid');
@@ -244,8 +254,9 @@ const removeGameTiles = async (gameId) => {
   return Promise.all(promises);
 };
 
-export const useStartGame = (gameId) => {
-  const game = useGame(gameId);
+export const useStartGame = () => {
+  const gameId = useGameId();
+  const game = useGame();
 
   return async () => {
     if (!game.loaded) return null;
