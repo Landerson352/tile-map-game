@@ -30,6 +30,10 @@ import {
 import useAppState from '../useAppState';
 import usePanZoom from '../lib/useSvgPanZoom';
 
+const TYPE = {
+  TILE: 'TILE',
+};
+
 const playerColors = [
   'cyan',
   'pink',
@@ -43,23 +47,17 @@ const playerColors = [
 ];
 
 const Players = (props) => {
-  const { ...restProps } = props;
-  const game = useGame();
   const users = useGameUsers();
 
-  if (!game.loaded || !users.loaded) return (
+  if (!users.loaded) return (
     <Spinner />
   );
 
-  const usersInTurnOrder = map(game.data.userIds, (id) => {
-    return find(users.data, { id });
-  });
-
   return (
-    <Stack isInline spacing={4} {...restProps}>
-      {map(usersInTurnOrder, (user, i) => {
+    <Stack isInline spacing={4} {...props}>
+      {map(users.data, (user, i) => {
         const firstName = user.displayName.split(' ')[0];
-        const isCurrentTurn = (user.id === game.data.currentTurnUserId);
+        const isCurrentTurn = (user.id === users.currentTurnUserId);
         const color = playerColors[i];
         const strokeColor = `${color}.500`;
         const bgColor = `${color}.200`;
@@ -233,7 +231,7 @@ const TileSocket = (props) => {
   const tileData = { x, y };
   const placeTile = usePlaceTile();
   const [{ isOver, canDrop }, drop] = useDrop({
-    accept: 'TILE',
+    accept: TYPE.TILE,
     drop: ({ tileData: { id } }) => {
       return placeTile(id, x, y)
     },
@@ -304,7 +302,7 @@ const InventoryTile = (props) => {
   const { tileData } = props;
   const [{ isDragging }, drag] = useDrag({
     item: {
-      type: 'TILE',
+      type: TYPE.TILE,
       tileData,
     },
     collect: (monitor) => ({
@@ -326,29 +324,22 @@ const InventoryTile = (props) => {
   );
 };
 
-const GameView = () => {
-  const game = useGame();
+const InventoryTiles = () => {
   const myTiles = useMyGameTiles();
-  const tiles = useGameTiles();
-  const svgRef = usePanZoom();
-  useMyTurnToaster();
+  if (!myTiles.loaded) return null;
+  return map(myTiles.data, (tile, i) => (
+    <InventoryTile key={i} tileData={tile} />
+  ))
+};
 
-  if (!game.loaded || !myTiles.loaded || !tiles.loaded) {
-    return <p>Loading...</p>;
-  }
+const createSocket = (x, y) => ({
+  key: [x, y].join('_'),
+  x,
+  y,
+});
 
-  if (game.isEmpty) {
-    return <p>No game info found.</p>;
-  }
-
-  const gameHasStarted = game.data.currentTurnUserId;
-
+const createTileSockets = (tiles) => {
   // create sockets near existing tiles
-  const createSocket = (x, y) => ({
-    key: [x, y].join('_'),
-    x,
-    y,
-  });
   let tileSockets = [];
   if (tiles.isEmpty) {
     tileSockets = [createSocket(0, 0)]
@@ -366,34 +357,59 @@ const GameView = () => {
     // remove duplicates
     tileSockets = uniqBy(tileSockets, 'key');
   }
+  return tileSockets;
+};
+
+const Board = () => {
+  const tiles = useGameTiles();
+  const svgRef = usePanZoom();
+
+  if (!tiles.loaded) return null;
+
+  const tileSockets = createTileSockets(tiles);
+
+  return (
+    <Box viewBox="-200 -200 400 400" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
+      <g ref={svgRef}>
+        {map(tileSockets, ({ key, x, y }) => (
+          <TileSocket
+            key={key}
+            x={x}
+            y={y}
+          />
+        ))}
+        {map(tiles.data, (tile) => (
+          <Tile
+            key={tile.id}
+            tileData={tile}
+          />
+        ))}
+        <TileFocusRing />
+      </g>
+    </Box>
+  );
+};
+
+const GameView = () => {
+  const game = useGame();
+  useMyTurnToaster();
+
+  if (!game.loaded) {
+    return <p>Loading...</p>;
+  }
+
+  if (game.isEmpty) {
+    return <p>No game info found.</p>;
+  }
 
   return (
     <>
-      {gameHasStarted ? (
+      {game.hasStarted ? (
         <>
-          <Box viewBox="-200 -200 400 400" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
-            <g ref={svgRef}>
-              {map(tileSockets, ({ key, x, y }) => (
-                <TileSocket
-                  key={key}
-                  x={x}
-                  y={y}
-                />
-              ))}
-              {map(tiles.data, (tile) => (
-                <Tile
-                  key={tile.id}
-                  tileData={tile}
-                />
-              ))}
-              <TileFocusRing />
-            </g>
-          </Box>
+          <Board />
           <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
             <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
-              {map(myTiles.data, (tile, i) => (
-                <InventoryTile key={i} tileData={tile} />
-              ))}
+              <InventoryTiles />
             </Stack>
           </Stack>
         </>
@@ -417,12 +433,10 @@ const GameView = () => {
   );
 };
 
-const Game = (props) => {
-  return (
-    <GameIdContext.Provider value={props.match.params['gameId']}>
-      <GameView />
-    </GameIdContext.Provider>
-  );
-};
+const Game = (props) => (
+  <GameIdContext.Provider value={props.match.params['gameId']}>
+    <GameView />
+  </GameIdContext.Provider>
+);
 
 export default Game;

@@ -1,7 +1,7 @@
 import React from 'react';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { get, isEmpty, map, sample, times } from 'lodash';
+import { find, get, isEmpty, map, sample, times } from 'lodash';
 import { usePrevious } from 'react-use';
 
 import useAuth, { updateUser } from './lib/useAuth';
@@ -83,9 +83,14 @@ export const useAddGame = () => {
 
 export const useGame = () => {
   const gameId = useGameId();
-  return useDocumentData(
+  const game = useDocumentData(
     db().collection('games').doc(gameId)
   );
+  const hasStarted = get(game, 'data.currentTurnUserId', false);
+  return {
+    ...game,
+    hasStarted,
+  };
 };
 
 export const useGameTiles = () => {
@@ -134,11 +139,25 @@ export const useGames = () => {
 
 export const useGameUsers = () => {
   const gameId = useGameId();
-  return useCollectionData(
+  const game = useGame();
+  const users = useCollectionData(
     db().collection('games')
       .doc(gameId)
       .collection('users')
   );
+  if (!game.loaded || !users.loaded) {
+    return {
+      loaded: false,
+    };
+  }
+  const usersInTurnOrder = map(game.data.userIds, (id) => {
+    return find(users.data, { id });
+  });
+  return {
+    loaded: true,
+    currentTurnUserId: game.data.currentTurnUserId,
+    data: usersInTurnOrder,
+  };
 };
 
 export const useIncrementGameTurn = () => {
