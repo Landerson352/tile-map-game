@@ -1,16 +1,16 @@
 import React from 'react';
 import firebase from 'firebase/app';
-// import { filter, isEmpty } from 'lodash';
+import { isEmpty } from 'lodash';
 import useAuth from '../lib/useAuth';
 
 // import useDocumentData from '../lib/useDocumentData';
 import useCollectionData from '../lib/useCollectionData';
-import { addGame, addGameUser } from './utils';
+import { addGame, addGameUser } from '../api';
 
 const db = firebase.firestore;
 // const { arrayUnion, increment } = firebase.firestore.FieldValue;
 
-const useCreateAppVM = () => {
+const useCreateAuthorizedVM = () => {
   const auth = useAuth();
   const myUserId = auth.user?.id;
 
@@ -28,15 +28,17 @@ const useCreateAppVM = () => {
     return game;
   };
 
-  const joinGame = (gameId, values) => {
+  const joinGame = (gameId, userValues) => {
     if (!myUserId) return false;
-    return addGameUser(gameId, myUserId, values);
+    return addGameUser(gameId, myUserId, userValues);
   };
 
   const vm = {
     loaded: auth.loaded && myGames.loaded,
     error: auth.error || myGames.error,
-    myGames,
+    user: auth.user,
+    myGames: myGames.data,
+    haveGames: !isEmpty(myGames.data),
     hostGame,
     joinGame,
   };
@@ -47,11 +49,11 @@ const useCreateAppVM = () => {
 };
 
 // Provider/consumer pattern, to make VM available to all descendants
-const AppContext = React.createContext({});
-export const useAppVM = () => React.useContext(AppContext);
-export const AppVMProvider = (props) => {
-  const vm = useCreateAppVM();
+const AuthorizedContext = React.createContext({});
+export const useAuthorizedVM = () => React.useContext(AuthorizedContext);
+export const AuthorizedVMProvider = (props) => {
+  const vm = useCreateAuthorizedVM();
   return (
-    <AppContext.Provider {...props} value={vm} />
+    <AuthorizedContext.Provider {...props} value={vm} />
   );
 };

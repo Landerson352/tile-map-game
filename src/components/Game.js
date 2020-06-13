@@ -1,35 +1,26 @@
 import React from 'react';
 import {
   Avatar,
-  // AvatarBadge,
-  Box, Flex,
-  // Modal,
-  // ModalContent,
+  Box,
+  Flex,
   Spinner,
   Stack,
-  Text, useDisclosure,
-  useToast,
+  Text,
+  useDisclosure,
 } from '@chakra-ui/core';
-import { find, map, reduce, uniqBy } from 'lodash';
+import { map } from 'lodash';
 import { useCopyToClipboard } from 'react-use';
-import SimpleModal from '../lib/components/SimpleModal';
 import { Link } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
 
+import usePanZoom from '../lib/useSvgPanZoom';
+import SimpleModal from '../lib/components/SimpleModal';
+import useMyTurnToaster from '../utils/useMyTurnToaster';
+import { AuthorizedVMProvider } from '../vms/authorized';
+import { GameVMProvider, useGameVM } from '../vms/game';
 import Button from './Button';
 import IconButton from './IconButton';
-import {
-  // incrementGameUserScore,
-  useGame,
-  useGameTiles,
-  useGameUsers,
-  useIncrementGameTurn,
-  useMyGameTiles,
-  useMyTurnCallback, usePlaceTile,
-  useStartGame,
-} from '../db';
-import useAppState from '../useAppState';
-import usePanZoom from '../lib/useSvgPanZoom';
+import Suspender from './Suspender';
 
 const playerColors = [
   'cyan',
@@ -44,23 +35,13 @@ const playerColors = [
 ];
 
 const Players = (props) => {
-  const { gameId, ...restProps } = props;
-  const game = useGame(gameId);
-  const users = useGameUsers(gameId);
-
-  if (!game.loaded || !users.loaded) return (
-    <Spinner />
-  );
-
-  const usersInTurnOrder = map(game.data.userIds, (id) => {
-    return find(users.data, { id });
-  });
+  const { currentTurnUserId, usersInTurnOrder } = useGameVM();
 
   return (
-    <Stack isInline spacing={4} {...restProps}>
+    <Stack isInline spacing={4} {...props}>
       {map(usersInTurnOrder, (user, i) => {
         const firstName = user.displayName.split(' ')[0];
-        const isCurrentTurn = (user.id === game.data.currentTurnUserId);
+        const isCurrentTurn = (user.id === currentTurnUserId);
         const color = playerColors[i];
         const strokeColor = `${color}.500`;
         const bgColor = `${color}.200`;
@@ -79,7 +60,7 @@ const Players = (props) => {
             <Stack alignItems="center" fontWeight="bold" lineHeight={0.7} fontSize="lg" flex={1} padding={2} paddingLeft={6}>
               <Text>{firstName}</Text>
               <Text>{user.score || 0}</Text>
-              {/*<Button size="xs" onClick={() => incrementGameUserScore(gameId, user.id, 100)}>+100</Button>*/}
+              {/*<Button size="xs" onClick={() => incrementUserScore(user.id, 100)}>+100</Button>*/}
             </Stack>
           </Stack>
         );
@@ -89,7 +70,7 @@ const Players = (props) => {
 };
 
 const InvitationButton = (props) => {
-  const { gameId, ...restProps } = props;
+  const { game } = useGameVM();
   const [state, copyToClipboard] = useCopyToClipboard();
 
   let icon = 'copy';
@@ -103,10 +84,10 @@ const InvitationButton = (props) => {
   return (
     <Button
       rightIcon={icon}
-      onClick={() => copyToClipboard(gameId)}
       variant="outline"
       variantColor={variantColor}
-      {...restProps}
+      onClick={() => copyToClipboard(game.id)}
+      {...props}
     >
       Copy invitation code
     </Button>
@@ -135,29 +116,25 @@ const InvitationButton = (props) => {
 // };
 
 const AdvanceTurnTester = (props) => {
-  const { gameId } = props;
-  const game = useGame(gameId);
-  const incrementGameTurn = useIncrementGameTurn(gameId);
-
-  if (!game.loaded) return null;
+  const { currentTurnUserId, incrementTurn } = useGameVM();
 
   return (
     <Button
-      onClick={incrementGameTurn}
       rightIcon="arrow-alt-to-right"
+      onClick={incrementTurn}
+      {...props}
     >
-      {game.data.currentTurnUserId ? 'End turn' : 'Start game'}
+      {currentTurnUserId ? 'End turn' : 'Start game'}
     </Button>
   );
 };
 
-const StartGameButton = (props) => {
-  const { gameId } = props;
-  const startGame = useStartGame(gameId);
+const StartGameButton = () => {
+  const { restart } = useGameVM();
 
   return (
     <Button
-      onClick={startGame}
+      onClick={restart}
       rightIcon="arrow-alt-to-right"
       size="lg"
       variantColor="green"
@@ -167,24 +144,12 @@ const StartGameButton = (props) => {
   );
 };
 
-const useMyTurnToaster = (gameId) => {
-  const toast = useToast();
-  useMyTurnCallback(gameId, () => {
-    toast({
-      title: 'It is your turn!',
-      status: 'success',
-      position: 'bottom',
-    });
-  });
-};
-
 const AddPlayerButton = (props) => {
-  const { gameId, ...restProps } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
     <>
-      <IconButton {...restProps} onClick={onOpen} />
+      <IconButton onClick={onOpen} {...props} />
       <SimpleModal
         title="Invite more players"
         isOpen={isOpen}
@@ -194,18 +159,17 @@ const AddPlayerButton = (props) => {
           Send the invitation code to your friends.
           They can use it in the "Join game" option on the main menu.
         </Text>
-        <InvitationButton gameId={gameId} autoFocus />
+        <InvitationButton autoFocus />
       </SimpleModal>
     </>
   );
 };
 
 const ResetGameButton = (props) => {
-  const { gameId, ...restProps } = props;
-  const startGame = useStartGame(gameId);
+  const { restart } = useGameVM();
 
   return (
-    <IconButton {...restProps} onClick={startGame} />
+    <IconButton onClick={restart} {...props} />
   );
 };
 
@@ -225,22 +189,19 @@ const TileWrapper = (props) => {
 
 const Tile = (props) => {
   const { tileData } = props;
-  const [, { setTileFocus }] = useAppState();
-  const handleClick = () => {
-    setTileFocus(tileData);
-  };
+  const { setTileFocus } = useGameVM();
 
   return (
-    <TileWrapper onClick={handleClick}  {...props}>
+    <TileWrapper onClick={() => setTileFocus(tileData)} {...props}>
       <rect width={100} height={100} fill="green" stroke="green" strokeWidth={2} />
     </TileWrapper>
   );
 };
 
 const TileSocket = (props) => {
-  const { gameId, x, y } = props;
+  const { x, y } = props;
   const tileData = { x, y };
-  const placeTile = usePlaceTile(gameId);
+  const { placeTile, setTileFocus } = useGameVM();
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'TILE',
     drop: ({ tileData: { id } }) => {
@@ -264,11 +225,6 @@ const TileSocket = (props) => {
     }
   }
 
-  const [, { setTileFocus }] = useAppState();
-  const handleClick = () => {
-    setTileFocus(tileData);
-  };
-
   return (
     <TileWrapper tileData={tileData}>
       <rect
@@ -278,20 +234,16 @@ const TileSocket = (props) => {
         fill={fill}
         stroke={stroke}
         strokeWidth={1}
-        onClick={handleClick}
+        onClick={() => setTileFocus(tileData)}
       />
     </TileWrapper>
   );
 };
 
-const TileFocusRing = (props) => {
-  const { gameId } = props;
-  const [{ tileFocus }] = useAppState();
-  const tiles = useGameTiles(gameId);
+const TileFocusRing = () => {
+  const { isFocusedTileEmpty, tileFocus } = useGameVM();
 
-  if (!tiles.loaded || !tileFocus) return null;
-
-  const isFocusedTileEmpty = !find(tiles.data, tileFocus);
+  if (!tileFocus) return null;
 
   return (
     <TileWrapper tileData={tileFocus}>
@@ -336,101 +288,73 @@ const InventoryTile = (props) => {
   );
 };
 
-const Game = (props) => {
-  const { gameId } = props.match.params;
-
-  const game = useGame(gameId);
-  const myTiles = useMyGameTiles(gameId);
-  const tiles = useGameTiles(gameId);
+const GameView = () => {
+  const vm = useGameVM();
+  const { gameId, hasStarted, myTiles, tiles, tileSockets } = vm;
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
 
-  if (!game.loaded || !myTiles.loaded || !tiles.loaded) {
-    return <p>Loading...</p>;
-  }
-
-  if (game.isEmpty) {
-    return <p>No game info found.</p>;
-  }
-
-  const gameHasStarted = game.data.currentTurnUserId;
-
-
-  // create sockets near existing tiles
-  const createSocket = (x, y) => ({
-    key: [x, y].join('_'),
-    x,
-    y,
-  });
-  let tileSockets = [];
-  if (tiles.isEmpty) {
-    tileSockets = [createSocket(0, 0)]
-  } else {
-    tileSockets = reduce(tiles.data, (sum, tile) => {
-      const { x, y } = tile;
-      return [
-        ...sum,
-        createSocket(x - 1, y),
-        createSocket(x + 1, y),
-        createSocket(x, y - 1),
-        createSocket(x, y + 1),
-      ];
-    }, []);
-    // remove duplicates
-    tileSockets = uniqBy(tileSockets, 'key');
-  }
-
   return (
-    <>
-      {gameHasStarted ? (
+    <Suspender {...vm}>
+      {() => (
         <>
-          <Box viewBox="-200 -200 400 400" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
-            <g ref={svgRef}>
-              {map(tileSockets, ({ key, x, y }) => (
-                <TileSocket
-                  key={key}
-                  gameId={gameId}
-                  x={x}
-                  y={y}
-                />
-              ))}
-              {map(tiles.data, (tile) => (
-                <Tile
-                  key={tile.id}
-                  tileData={tile}
-                />
-              ))}
-              <TileFocusRing
-                gameId={gameId}
-              />
-            </g>
-          </Box>
-          <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
-            <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
-              {map(myTiles.data, (tile, i) => (
-                <InventoryTile key={i} tileData={tile} />
-              ))}
+          {hasStarted ? (
+            <>
+              <Box viewBox="-200 -200 400 400" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
+                <g ref={svgRef}>
+                  {map(tileSockets, ({ key, x, y }) => (
+                    <TileSocket
+                      key={key}
+                      gameId={gameId}
+                      x={x}
+                      y={y}
+                    />
+                  ))}
+                  {map(tiles, (tile) => (
+                    <Tile
+                      key={tile.id}
+                      tileData={tile}
+                    />
+                  ))}
+                  <TileFocusRing />
+                </g>
+              </Box>
+              <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
+                <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
+                  {map(myTiles, (tile, i) => (
+                    <InventoryTile key={i} tileData={tile} />
+                  ))}
+                </Stack>
+              </Stack>
+            </>
+          ) : (
+            <Flex height="100%" alignItems="center" justifyContent="center">
+              <Stack width={220}>
+                <StartGameButton gameId={gameId} />
+              </Stack>
+            </Flex>
+          )}
+          <Stack isInline justifyContent="center" position="fixed" top={2} left={0} right={0}>
+            <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" py={2} px={4} rounded={36} pointerEvents="all" spacing={3}>
+              <Players gameId={gameId} marginRight={16} />
+              <AddPlayerButton gameId={gameId} icon="user-plus" isRound />
+              <ResetGameButton gameId={gameId} icon="redo-alt" isRound />
+              <IconButton as={Link} to="/" icon="power-off" isRound />
+              <AdvanceTurnTester gameId={gameId} />
             </Stack>
           </Stack>
         </>
-      ) : (
-        <Flex height="100%" alignItems="center" justifyContent="center">
-          <Stack width={220}>
-            <StartGameButton gameId={gameId} />
-          </Stack>
-        </Flex>
       )}
-      <Stack isInline justifyContent="center" position="fixed" top={2} left={0} right={0}>
-        <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" py={2} px={4} rounded={36} pointerEvents="all" spacing={3}>
-          <Players gameId={gameId} marginRight={16} />
-          <AddPlayerButton gameId={gameId} icon="user-plus" isRound />
-          <ResetGameButton gameId={gameId} icon="redo-alt" isRound />
-          <IconButton as={Link} to="/" icon="power-off" isRound />
-          <AdvanceTurnTester gameId={gameId} />
-        </Stack>
-      </Stack>
-    </>
+    </Suspender>
   );
 };
+
+const Game = (props) => (
+  <AuthorizedVMProvider>
+    <GameVMProvider gameId={props.match.params.gameId}>
+      <GameView />
+    </GameVMProvider>
+  </AuthorizedVMProvider>
+);
 
 export default Game;

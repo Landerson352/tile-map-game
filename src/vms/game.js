@@ -1,8 +1,9 @@
 import React from 'react';
-import { filter, isEmpty, map, sample } from 'lodash';
+import { filter, find, isEmpty, map, sample } from 'lodash';
+import { usePrevious } from 'react-use';
 
 import useAuth from '../lib/useAuth';
-import createSockets from './createSockets';
+import createSockets from '../utils/createSockets';
 import {
   dealGameUserTiles,
   incrementGameUserScore,
@@ -12,26 +13,32 @@ import {
   useGameData,
   useGameTilesData,
   useGameUsersData,
-} from './utils';
+} from '../api';
 
 const useCreateGameVM = ({ gameId }) => {
   const auth = useAuth();
   const game = useGameData(gameId);
   const tiles = useGameTilesData(gameId);
   const users = useGameUsersData(gameId);
+  const previousTurnUserId = usePrevious(game.data?.currentTurnUserId);
 
   // aliases
   const loaded = game.loaded && tiles.loaded && users.loaded;
   const error = game.error || tiles.error || users.error;
-  const myUserId = auth.user?.uid;
+  const myUserId = auth.user?.id;
   const userIds = game.data?.userIds || [];
   const currentTurnUserId = game.data?.currentTurnUserId;
+  const hasStarted = !!currentTurnUserId;
   const isMyTurn = !!currentTurnUserId && currentTurnUserId === myUserId;
+  const justBecameMyTurn = isMyTurn && (currentTurnUserId !== previousTurnUserId);
 
   // filters & aggregators
   const myTiles = filter(tiles.data, { userId: myUserId });
   const placedTiles = filter(tiles.data, { isPlaced: true });
   const tileSockets = createSockets(placedTiles);
+  const usersInTurnOrder = map(game.data?.userIds, (id) => {
+    return find(users.data, { id });
+  });
 
   // functions
   const incrementTurn = () => {
@@ -67,6 +74,7 @@ const useCreateGameVM = ({ gameId }) => {
     return true;
   };
 
+  // TODO: add tileFocus, setTileFocus, isFocusedTileEmpty
   const vm = {
     loaded,
     error,
@@ -74,17 +82,24 @@ const useCreateGameVM = ({ gameId }) => {
     game: game.data,
     tiles: tiles.data,
     users: users.data,
+    currentTurnUserId,
+    hasStarted,
+    isFocusedTileEmpty: false,
     isMyTurn,
+    justBecameMyTurn,
     myTiles,
     placedTiles,
+    tileFocus: null,
     tileSockets,
+    usersInTurnOrder,
     incrementTurn,
     incrementUserScore,
     placeTile,
     restart,
+    setTileFocus: () => {},
   };
 
-  console.log(vm);
+  // console.log(vm);
 
   return vm;
 };

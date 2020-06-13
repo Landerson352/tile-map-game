@@ -1,5 +1,5 @@
 import firebase from 'firebase';
-import { isEmpty, map, sample, times } from 'lodash';
+import { map, times } from 'lodash';
 
 import { updateUser } from '../lib/useAuth';
 import useCollectionData from '../lib/useCollectionData';
