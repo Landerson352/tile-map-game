@@ -94,27 +94,6 @@ const InvitationButton = (props) => {
   );
 };
 
-// const AddToScoreTester = (props) => {
-//   const { gameId } = props;
-//   const myGameUser = useMyGameUser(gameId);
-//
-//   if (!myGameUser.loaded) return null;
-//
-//   const score = myGameUser.data.score || 0;
-//
-//   const onClick = () => {
-//     console.log(gameId, myGameUser.data.id);
-//     return incrementGameUserScore(gameId, myGameUser.data.id, 352)
-//   };
-//
-//   return (
-//     <>
-//       <p>My score: {score}</p>
-//       <Button onClick={onClick}>Add to my score</Button>
-//     </>
-//   );
-// };
-
 const AdvanceTurnTester = (props) => {
   const { currentTurnUserId, incrementTurn } = useGameVM();
 
