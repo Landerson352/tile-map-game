@@ -41,7 +41,7 @@ const useCreateAppVM = () => {
     joinGame,
   };
 
-  console.log(vm);
+  // console.log(vm);
 
   return vm;
 };

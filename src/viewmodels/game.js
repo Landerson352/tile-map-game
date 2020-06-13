@@ -2,6 +2,7 @@ import React from 'react';
 import { filter, isEmpty, map, sample } from 'lodash';
 
 import useAuth from '../lib/useAuth';
+import createSockets from './createSockets';
 import {
   dealGameUserTiles,
   incrementGameUserScore,
@@ -27,9 +28,10 @@ const useCreateGameVM = ({ gameId }) => {
   const currentTurnUserId = game.data?.currentTurnUserId;
   const isMyTurn = !!currentTurnUserId && currentTurnUserId === myUserId;
 
-  // filters
+  // filters & aggregators
   const myTiles = filter(tiles.data, { userId: myUserId });
   const placedTiles = filter(tiles.data, { isPlaced: true });
+  const tileSockets = createSockets(placedTiles);
 
   // functions
   const incrementTurn = () => {
@@ -75,6 +77,7 @@ const useCreateGameVM = ({ gameId }) => {
     isMyTurn,
     myTiles,
     placedTiles,
+    tileSockets,
     incrementTurn,
     incrementUserScore,
     placeTile,
