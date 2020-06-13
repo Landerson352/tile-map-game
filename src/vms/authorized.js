@@ -19,6 +19,8 @@ const useCreateAuthorizedVM = () => {
       .where('userIds', 'array-contains', myUserId)
   );
 
+  // functions
+  // TODO: useCallback
   const hostGame = async (gameValues, userValues) => {
     const game = await addGame({
       ...gameValues,

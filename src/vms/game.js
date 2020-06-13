@@ -1,5 +1,5 @@
 import React from 'react';
-import { filter, find, isEmpty, map, sample } from 'lodash';
+import { filter, find, isEmpty, map, reduce, sample } from 'lodash';
 import { usePrevious } from 'react-use';
 
 import useAuth from '../lib/useAuth';
@@ -33,14 +33,23 @@ const useCreateGameVM = ({ gameId }) => {
   const justBecameMyTurn = isMyTurn && (currentTurnUserId !== previousTurnUserId);
 
   // filters & aggregators
+  // TODO: memoize
   const myTiles = filter(tiles.data, { userId: myUserId });
+  const myTilesInHand = filter(myTiles, { isPlaced: false });
   const placedTiles = filter(tiles.data, { isPlaced: true });
-  const tileSockets = createSockets(placedTiles);
   const usersInTurnOrder = map(game.data?.userIds, (id) => {
     return find(users.data, { id });
   });
+  const placedTilesHash = reduce(placedTiles, (sum, tile) => {
+    return {
+      ...sum,
+      [`${tile.x}_${tile.y}`]: tile,
+    };
+  }, {});
+  const tileSockets = createSockets(placedTilesHash);
 
   // functions
+  // TODO: useCallback
   const incrementTurn = () => {
     if (isEmpty(userIds)) return false;
 
@@ -88,7 +97,9 @@ const useCreateGameVM = ({ gameId }) => {
     isMyTurn,
     justBecameMyTurn,
     myTiles,
+    myTilesInHand,
     placedTiles,
+    placedTilesHash,
     tileFocus: null,
     tileSockets,
     usersInTurnOrder,

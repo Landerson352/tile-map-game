@@ -269,7 +269,7 @@ const InventoryTile = (props) => {
 
 const GameView = () => {
   const vm = useGameVM();
-  const { gameId, hasStarted, myTiles, tiles, tileSockets } = vm;
+  const { gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
 
@@ -284,12 +284,11 @@ const GameView = () => {
                   {map(tileSockets, ({ key, x, y }) => (
                     <TileSocket
                       key={key}
-                      gameId={gameId}
                       x={x}
                       y={y}
                     />
                   ))}
-                  {map(tiles, (tile) => (
+                  {map(placedTiles, (tile) => (
                     <Tile
                       key={tile.id}
                       tileData={tile}
@@ -300,7 +299,7 @@ const GameView = () => {
               </Box>
               <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
                 <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
-                  {map(myTiles, (tile, i) => (
+                  {map(myTilesInHand, (tile, i) => (
                     <InventoryTile key={i} tileData={tile} />
                   ))}
                 </Stack>
@@ -309,15 +308,15 @@ const GameView = () => {
           ) : (
             <Flex height="100%" alignItems="center" justifyContent="center">
               <Stack width={220}>
-                <StartGameButton gameId={gameId} />
+                <StartGameButton />
               </Stack>
             </Flex>
           )}
           <Stack isInline justifyContent="center" position="fixed" top={2} left={0} right={0}>
             <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" py={2} px={4} rounded={36} pointerEvents="all" spacing={3}>
-              <Players gameId={gameId} marginRight={16} />
-              <AddPlayerButton gameId={gameId} icon="user-plus" isRound />
-              <ResetGameButton gameId={gameId} icon="redo-alt" isRound />
+              <Players marginRight={16} />
+              <AddPlayerButton icon="user-plus" isRound />
+              <ResetGameButton icon="redo-alt" isRound />
               <IconButton as={Link} to="/" icon="power-off" isRound />
               <AdvanceTurnTester gameId={gameId} />
             </Stack>

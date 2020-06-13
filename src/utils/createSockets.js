@@ -6,20 +6,19 @@ const createSocket = (x, y) => ({
   y,
 });
 
-const createSockets = (tiles) => {
+const createSockets = (tilesHash) => {
   let tileSockets = [];
-  if (isEmpty(tiles)) {
+  if (isEmpty(tilesHash)) {
     tileSockets = [createSocket(0, 0)]
   } else {
-    tileSockets = reduce(tiles, (sum, tile) => {
+    tileSockets = reduce(tilesHash, (sum, tile) => {
       const { x, y } = tile;
-      return [
-        ...sum,
-        createSocket(x - 1, y),
-        createSocket(x + 1, y),
-        createSocket(x, y - 1),
-        createSocket(x, y + 1),
-      ];
+      const newSum = [ ...sum ];
+      if (!tilesHash[`${x - 1}_${y}`]) newSum.push(createSocket(x - 1, y));
+      if (!tilesHash[`${x + 1}_${y}`]) newSum.push(createSocket(x + 1, y));
+      if (!tilesHash[`${x}_${y - 1}`]) newSum.push(createSocket(x, y - 1));
+      if (!tilesHash[`${x}_${y + 1}`]) newSum.push(createSocket(x, y + 1));
+      return newSum;
     }, []);
     // remove duplicates
     tileSockets = uniqBy(tileSockets, 'key');

@@ -19,8 +19,6 @@ const GamesListing = () => {
   const history = useHistory();
   const { haveGames, myGames } = useAuthorizedVM();
 
-  console.log(myGames);
-
   if (!haveGames) {
     return <p>No games found.</p>;
   }
