@@ -5,6 +5,8 @@ import { usePrevious } from 'react-use';
 import useAuth from '../lib/useAuth';
 import createSockets from '../utils/createSockets';
 import {
+  HAND_SIZE,
+  dealGameUserTile,
   dealGameUserTiles,
   incrementGameUserScore,
   placeGameTile,
@@ -36,6 +38,7 @@ const useCreateGameVM = ({ gameId }) => {
   // TODO: memoize
   const myTiles = filter(tiles.data, { userId: myUserId });
   const myTilesInHand = filter(myTiles, { isPlaced: false });
+  const canDrawTile = myTilesInHand.length < HAND_SIZE;
   const placedTiles = filter(tiles.data, { isPlaced: true });
   const usersInTurnOrder = map(game.data?.userIds, (id) => {
     return find(users.data, { id });
@@ -50,6 +53,10 @@ const useCreateGameVM = ({ gameId }) => {
 
   // functions
   // TODO: useCallback
+  const drawTile = () => {
+    return dealGameUserTile(gameId, myUserId);
+  };
+
   const incrementTurn = () => {
     if (isEmpty(userIds)) return false;
 
@@ -75,7 +82,7 @@ const useCreateGameVM = ({ gameId }) => {
     await removeAllGameTiles(gameId);
     // Give each user a hand of tiles
     await Promise.all(map(userIds, (userId) => {
-      return dealGameUserTiles(gameId, userId, 7);
+      return dealGameUserTiles(gameId, userId, HAND_SIZE);
     }));
     await updateGame(gameId, {
       currentTurnUserId: sample(userIds),
@@ -91,6 +98,7 @@ const useCreateGameVM = ({ gameId }) => {
     game: game.data,
     tiles: tiles.data,
     users: users.data,
+    canDrawTile,
     currentTurnUserId,
     hasStarted,
     isFocusedTileEmpty: false,
@@ -103,6 +111,7 @@ const useCreateGameVM = ({ gameId }) => {
     tileFocus: null,
     tileSockets,
     usersInTurnOrder,
+    drawTile,
     incrementTurn,
     incrementUserScore,
     placeTile,

@@ -269,7 +269,7 @@ const InventoryTile = (props) => {
 
 const GameView = () => {
   const vm = useGameVM();
-  const { gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
+  const { canDrawTile, drawTile, gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
 
@@ -302,6 +302,9 @@ const GameView = () => {
                   {map(myTilesInHand, (tile, i) => (
                     <InventoryTile key={i} tileData={tile} />
                   ))}
+                  {canDrawTile && (
+                    <Button onClick={drawTile}>Draw</Button>
+                  )}
                 </Stack>
               </Stack>
             </>

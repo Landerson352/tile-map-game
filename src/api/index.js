@@ -8,6 +8,8 @@ import useDocumentData from '../lib/useDocumentData';
 const db = firebase.firestore;
 const { arrayUnion, increment } = firebase.firestore.FieldValue;
 
+export const HAND_SIZE = 7;
+
 export const addGame = (values) => {
   return db().collection('games').add({
     name: 'Untitled Game',
@@ -38,16 +40,20 @@ export const addGameUser = async (gameId, userId, values) => {
   return gameUser;
 };
 
+export const dealGameUserTile = (gameId, userId, tile = null) => {
+  return addGameTile(gameId, {
+    userId,
+    isPlaced: false,
+    // biome: 'forest',
+    // road: 'straight',
+    // river: 'straight',
+    ...tile,
+  });
+};
+
 export const dealGameUserTiles = async (gameId, userId, number) => {
   const promises = times(number, () => {
-    const tile = {
-      userId: userId,
-      isPlaced: false,
-      // biome: 'forest',
-      // road: 'straight',
-      // river: 'straight',
-    };
-    return addGameTile(gameId, tile);
+    return dealGameUserTile(gameId, userId);
   });
   return Promise.all(promises);
 };
@@ -106,8 +112,13 @@ export const useGameTilesData = (gameId) =>  useCollectionData(
     .collection('tiles')
 );
 // read count: users.length
-export const useGameUsersData = (gameId) =>   useCollectionData(
+export const useGameUsersData = (gameId) => useCollectionData(
   db().collection('games')
     .doc(gameId)
     .collection('users')
+);
+// read count: user.n.games.length
+export const useUserGames = (userId) => useCollectionData(
+  db().collection('games')
+    .where('userIds', 'array-contains', userId)
 );

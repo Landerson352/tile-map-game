@@ -1,23 +1,14 @@
 import React from 'react';
-import firebase from 'firebase/app';
 import { isEmpty } from 'lodash';
+
 import useAuth from '../lib/useAuth';
-
-// import useDocumentData from '../lib/useDocumentData';
-import useCollectionData from '../lib/useCollectionData';
-import { addGame, addGameUser } from '../api';
-
-const db = firebase.firestore;
-// const { arrayUnion, increment } = firebase.firestore.FieldValue;
+import { addGame, addGameUser, useUserGames } from '../api';
 
 const useCreateAuthorizedVM = () => {
   const auth = useAuth();
   const myUserId = auth.user?.id;
 
-  const myGames = useCollectionData(
-    db().collection('games')
-      .where('userIds', 'array-contains', myUserId)
-  );
+  const myGames = useUserGames(myUserId);
 
   // functions
   // TODO: useCallback
