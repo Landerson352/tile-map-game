@@ -22,7 +22,6 @@ const useCreateGameVM = ({ gameId }) => {
   const game = useGameData(gameId);
   const tiles = useGameTilesData(gameId);
   const users = useGameUsersData(gameId);
-  const previousTurnUserId = usePrevious(game.data?.currentTurnUserId);
 
   // aliases
   const loaded = game.loaded && tiles.loaded && users.loaded;
@@ -30,6 +29,7 @@ const useCreateGameVM = ({ gameId }) => {
   const myUserId = auth.user?.id;
   const userIds = game.data?.userIds || [];
   const currentTurnUserId = game.data?.currentTurnUserId;
+  const previousTurnUserId = usePrevious(currentTurnUserId);
   const hasStarted = !!currentTurnUserId;
   const isMyTurn = !!currentTurnUserId && currentTurnUserId === myUserId;
   const justBecameMyTurn = isMyTurn && (currentTurnUserId !== previousTurnUserId);

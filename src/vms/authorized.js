@@ -7,7 +7,6 @@ import { addGame, addGameUser, useUserGames } from '../api';
 const useCreateAuthorizedVM = () => {
   const auth = useAuth();
   const myUserId = auth.user?.id;
-
   const myGames = useUserGames(myUserId);
 
   // functions
