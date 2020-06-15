@@ -8,7 +8,7 @@ import {
   Text,
   useDisclosure,
 } from '@chakra-ui/core';
-import { map } from 'lodash';
+import { map, times } from 'lodash';
 import { useCopyToClipboard } from 'react-use';
 import { Link } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
@@ -256,9 +256,7 @@ const InventoryTile = (props) => {
   return (
     <Box
       ref={drag}
-      style={{
-        opacity: isDragging ? 0 : 1,
-      }}
+      opacity={isDragging ? 0 :1}
     >
       <svg width={100} height={100}>
         <Tile />
@@ -269,7 +267,7 @@ const InventoryTile = (props) => {
 
 const GameView = () => {
   const vm = useGameVM();
-  const { canDrawTile, drawTile, gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
+  const { drawTile, emptySlotsInHand, gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
 
@@ -302,9 +300,13 @@ const GameView = () => {
                   {map(myTilesInHand, (tile, i) => (
                     <InventoryTile key={i} tileData={tile} />
                   ))}
-                  {canDrawTile && (
-                    <Button onClick={drawTile}>Draw</Button>
-                  )}
+                  {times(emptySlotsInHand, (i) => (
+                    <Flex key={i} width={100} height={100} alignItems="center" justifyContent="center">
+                      {i === 0 && (
+                        <Button onClick={drawTile}>Draw</Button>
+                      )}
+                    </Flex>
+                  ))}
                 </Stack>
               </Stack>
             </>

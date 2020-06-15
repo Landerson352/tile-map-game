@@ -39,6 +39,7 @@ const useCreateGameVM = ({ gameId }) => {
   const myTiles = filter(tiles.data, { userId: myUserId });
   const myTilesInHand = filter(myTiles, { isPlaced: false });
   const canDrawTile = myTilesInHand.length < HAND_SIZE;
+  const emptySlotsInHand = Math.max(HAND_SIZE - myTilesInHand.length, 0);
   const placedTiles = filter(tiles.data, { isPlaced: true });
   const usersInTurnOrder = map(game.data?.userIds, (id) => {
     return find(users.data, { id });
@@ -100,6 +101,7 @@ const useCreateGameVM = ({ gameId }) => {
     users: users.data,
     canDrawTile,
     currentTurnUserId,
+    emptySlotsInHand,
     hasStarted,
     isFocusedTileEmpty: false,
     isMyTurn,
