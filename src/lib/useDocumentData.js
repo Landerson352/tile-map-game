@@ -1,3 +1,4 @@
+import 'firebase/firestore';
 import { useDocumentData as useDocumentDataRFH } from 'react-firebase-hooks/firestore';
 
 const useDocumentData = (document, options) => {

@@ -15,13 +15,18 @@ export const updateUser = (id, values) => {
 
 export const AuthProvider = (props) => {
   const googleAuthProvider = React.useRef(new firebase.auth.GoogleAuthProvider()).current;
-  const [isLoaded, setIsLoaded] = React.useState();
+  const [loaded, setLoaded] = React.useState();
   const [user, setUser] = React.useState();
 
   React.useEffect(() => {
     firebase.auth().onAuthStateChanged((user) => {
-      setUser(user);
-      setIsLoaded(true);
+      setUser(user ? {
+        id: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      } : null);
+      setLoaded(true);
       // TODO: set hasLoggedOut to true
       return updateUser(user.uid, {
         displayName: user.displayName,
@@ -32,7 +37,7 @@ export const AuthProvider = (props) => {
   }, []);
 
   const value = {
-    isLoaded,
+    loaded,
     signIn: () => firebase.auth().signInWithPopup(googleAuthProvider),
     signOut: () => firebase.auth().signOut(),
     user,

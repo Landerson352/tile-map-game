@@ -9,7 +9,7 @@ export const privateRoute = (LoginComponent) => {
     const { component: PrivateComponent, ...restProps } = props;
     const auth = useAuth();
     const render = (routeProps) => {
-      if (!auth.isLoaded) return <p>Please wait...</p>;
+      if (!auth.loaded) return <p>Please wait...</p>;
       if (!auth.user) return <LoginComponent />;
       return <PrivateComponent {...routeProps} />;
     };

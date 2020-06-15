@@ -6,22 +6,19 @@ import { DndProvider } from 'react-dnd'
 
 import firebaseConfig from './firebaseConfig';
 import { AuthProvider } from './lib/useAuth';
-import { AppStateProvider } from './useAppState';
 import Router from './Router';
 import ThemeProvider from './ThemeProvider';
 
 firebase.initializeApp(firebaseConfig);
 
 const App = () => (
-  <AppStateProvider>
-    <DndProvider backend={HTML5Backend}>
-      <AuthProvider>
-        <ThemeProvider>
-          <Router />
-        </ThemeProvider>
-      </AuthProvider>
-    </DndProvider>
-  </AppStateProvider>
+  <DndProvider backend={HTML5Backend}>
+    <AuthProvider>
+      <ThemeProvider>
+        <Router />
+      </ThemeProvider>
+    </AuthProvider>
+  </DndProvider>
 );
 
 export default App;

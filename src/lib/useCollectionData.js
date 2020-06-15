@@ -1,3 +1,4 @@
+import 'firebase/firestore';
 import { isEmpty } from 'lodash';
 import { useCollectionData as useCollectionDataRFH } from 'react-firebase-hooks/firestore';
 

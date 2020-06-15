@@ -1,70 +1,31 @@
 import React from 'react';
-import { isEmpty, map } from 'lodash';
+import { map } from 'lodash';
 import { useForm } from 'react-hook-form';
 import {
   Box,
   Flex,
   Input,
-  Spinner,
   Stack,
   useDisclosure
 } from '@chakra-ui/core';
 import { useHistory } from 'react-router-dom';
 
-import Button from './Button';
-import SimpleModal from '../lib/components/SimpleModal';
-import {
-  useAddGame,
-  useJoinGame,
-  useMyGames,
-  useMyUser,
-} from '../db';
 import useAuth from '../lib/useAuth';
-
-// const HostOptions = (props) => {
-//   const { game } = props;
-//   const auth = useAuth();
-//   const host = useUser(game.hostUserId);
-//   const [state, copyToClipboard] = useCopyToClipboard();
-//
-//   let icon = 'copy';
-//   if (state.error) icon = 'warning-2';
-//   else if (state.value) icon = 'check';
-//
-//   if (!host.loaded) return null;
-//
-//   const hostIsMe = game.hostUserId === auth.user.uid;
-//
-//   if (!hostIsMe) return `Host: ${host.data.displayName}`;
-//
-//   return (
-//     <Button
-//       rightIcon={icon}
-//       onClick={() => copyToClipboard(game.id)}
-//       variant="outline"
-//       size="xs"
-//       variantColor="green"
-//     >
-//       copy invitation code
-//     </Button>
-//   );
-// };
+import SimpleModal from '../lib/components/SimpleModal';
+import { AuthorizedVMProvider, useAuthorizedVM } from '../vms/authorized';
+import Button from './Button';
 
 const GamesListing = () => {
   const history = useHistory();
-  const games = useMyGames();
+  const { haveGames, myGames } = useAuthorizedVM();
 
-  if (!games.loaded) {
-    return <Spinner />;
-  }
-
-  if (games.isEmpty) {
+  if (!haveGames) {
     return <p>No games found.</p>;
   }
 
   return (
     <Stack>
-      {map(games.data, (game, i) => (
+      {map(myGames, (game, i) => (
         <Button
           key={game.id}
           onClick={() => history.push(`game/${game.id}`)}
@@ -86,11 +47,12 @@ const GamesListing = () => {
 const NewGameButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
-  const addGame = useAddGame();
+  const { hostGame, user } = useAuthorizedVM();
   const history = useHistory();
 
-  const onSubmit = async (values) => {
-    const game = await addGame(values);
+  const onSubmit = async (gameValues) => {
+    // TODO: let the user supply a displayName and photoURL
+    const game = await hostGame(gameValues, user);
     history.push(`game/${game.id}`);
   };
 
@@ -118,12 +80,12 @@ const NewGameButton = (props) => {
 const JoinGameButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { register, handleSubmit } = useForm();
-  const joinGame = useJoinGame();
+  const { joinGame, user } = useAuthorizedVM();
   const history = useHistory();
 
   const onSubmit = async (values) => {
     const { gameId } = values;
-    await joinGame(gameId);
+    await joinGame(gameId, user);
     history.push(`game/${gameId}`);
   };
 
@@ -150,9 +112,9 @@ const JoinGameButton = (props) => {
 
 const LoadGameButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const myUser = useMyUser();
+  const { haveGames } = useAuthorizedVM();
 
-  const disabled = !myUser.loaded || isEmpty(myUser.data.gameIds);
+  const disabled = !haveGames;
 
   return (
     <>
@@ -168,7 +130,7 @@ const LoadGameButton = (props) => {
   );
 };
 
-const Games = () => {
+const GamesView = () => {
   const auth = useAuth();
 
   return (
@@ -190,6 +152,14 @@ const Games = () => {
         </Button>
       </Stack>
     </Flex>
+  );
+};
+
+const Games = () => {
+  return (
+    <AuthorizedVMProvider>
+      <GamesView />
+    </AuthorizedVMProvider>
   );
 };
 
