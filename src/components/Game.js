@@ -170,10 +170,50 @@ const TileWrapper = (props) => {
 
 const Tile = (props) => {
   const { selected, tileData } = props;
+  const { roads = 'cccc', rotation = 0 } = tileData;
+  const rotatedRoads = (roads + roads).substr(rotation, 4);
   return (
     <TileWrapper {...props}>
       {!!tileData.id && (
-        <rect width={100} height={100} fill={tileData.color} />
+        <>
+          <rect width={100} height={100} fill={tileData.color} />
+          {rotatedRoads[0] === 'o' && (
+            <rect
+              width={16}
+              height={50 + 8}
+              x={50 - 8}
+              y={0}
+              fill="black"
+            />
+          )}
+          {rotatedRoads[1] === 'o' && (
+            <rect
+              width={50 + 8}
+              height={16}
+              x={50 - 8}
+              y={50 - 8}
+              fill="black"
+            />
+          )}
+          {rotatedRoads[2] === 'o' && (
+            <rect
+              width={16}
+              height={50 + 8}
+              x={50 - 8}
+              y={50 - 8}
+              fill="black"
+            />
+          )}
+          {rotatedRoads[3] === 'o' && (
+            <rect
+              width={50 + 8}
+              height={16}
+              x={0}
+              y={50 - 8}
+              fill="black"
+            />
+          )}
+        </>
       )}
       {selected && (
         <rect
@@ -200,11 +240,15 @@ const TileSocket = (props) => {
   return (
     <TileWrapper tileData={tileData} cursor="pointer">
       <rect
-        width={100}
-        height={100}
+        width={84}
+        height={84}
+        x={8}
+        y={8}
+        rx={8}
         fill="transparent"
         stroke="#ddd"
-        strokeWidth={1}
+        strokeDasharray="8 2"
+        strokeWidth={2}
         onClick={() => setFocusedSocket({ x, y })}
       />
     </TileWrapper>

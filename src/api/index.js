@@ -1,5 +1,5 @@
 import firebase from 'firebase';
-import { map, random, times } from 'lodash';
+import { map, random, sample, times } from 'lodash';
 
 import { updateUser } from '../lib/useAuth';
 import useCollectionData from '../lib/useCollectionData';
@@ -9,6 +9,14 @@ const db = firebase.firestore;
 const { arrayUnion, increment } = firebase.firestore.FieldValue;
 
 export const HAND_SIZE = 7;
+export const EDGES = {
+  oooo: {},
+  cooo: {},
+  ccoo: {},
+  ccco: {},
+  cccc: {},
+  coco: {},
+};
 
 export const addGame = (values) => {
   return db().collection('games').add({
@@ -45,9 +53,10 @@ export const dealGameUserTile = (gameId, userId, tile = null) => {
     userId,
     isPlaced: false,
     color: `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`, // debugging color
-    // biome: 'forest',
-    // road: 'straight',
-    // river: 'straight',
+    roads: sample(Object.keys(EDGES)),
+    water: sample(Object.keys(EDGES)),
+    rotation: random(0,3),
+    // biome: 'forest' | 'snow' | 'desert',
     ...tile,
   });
 };
