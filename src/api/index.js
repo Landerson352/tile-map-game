@@ -1,5 +1,5 @@
 import firebase from 'firebase';
-import { map, times } from 'lodash';
+import { map, random, times } from 'lodash';
 
 import { updateUser } from '../lib/useAuth';
 import useCollectionData from '../lib/useCollectionData';
@@ -44,6 +44,7 @@ export const dealGameUserTile = (gameId, userId, tile = null) => {
   return addGameTile(gameId, {
     userId,
     isPlaced: false,
+    color: `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`, // debugging color
     // biome: 'forest',
     // road: 'straight',
     // river: 'straight',
@@ -97,19 +98,53 @@ export const removeGame = (id) => {
     .doc(id).delete();
 };
 
+export const setGameUserFocusedSocket = (gameId, userId, focusedSocket) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('users')
+    .doc(userId)
+    .set({ focusedSocket }, { merge: true });
+};
+
+export const setGameUserFocusedTileId = (gameId, userId, focusedTileId) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('users')
+    .doc(userId)
+    .set({ focusedTileId }, { merge: true });
+};
+
 export const updateGame = (id, values) => {
   return db().collection('games')
-    .doc(id).set(values, { merge: true });
+    .doc(id)
+    .set(values, { merge: true });
+};
+
+export const updateGameUser = (gameId, userId, values) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('users')
+    .doc(userId)
+    .set(values, { merge: true });
 };
 
 // read count: 1
 export const useGameData = (gameId) => useDocumentData(
-  db().collection('games').doc(gameId)
+  db().collection('games')
+    .doc(gameId)
 );
 // read count: tiles.length
 export const useGameTilesData = (gameId) =>  useCollectionData(
-  db().collection('games').doc(gameId)
+  db().collection('games')
+    .doc(gameId)
     .collection('tiles')
+);
+// read count: 1
+export const useGameUserData = (gameId, userId) => useDocumentData(
+  db().collection('games')
+    .doc(gameId)
+    .collection('users')
+    .doc(userId)
 );
 // read count: users.length
 export const useGameUsersData = (gameId) => useCollectionData(

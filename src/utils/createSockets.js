@@ -6,6 +6,7 @@ const createSocket = (x, y) => ({
   y,
 });
 
+// TODO: memoize?
 const createSockets = (tilesHash) => {
   let tileSockets = [];
   if (isEmpty(tilesHash)) {

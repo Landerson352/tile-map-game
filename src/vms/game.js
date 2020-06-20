@@ -11,32 +11,41 @@ import {
   incrementGameUserScore,
   placeGameTile,
   removeAllGameTiles,
+  setGameUserFocusedSocket,
+  setGameUserFocusedTileId,
   updateGame,
   useGameData,
   useGameTilesData,
+  useGameUserData,
   useGameUsersData,
 } from '../api';
 
 const useCreateGameVM = ({ gameId }) => {
   const auth = useAuth();
+  const myUserId = auth.user?.id;
   const game = useGameData(gameId);
   const tiles = useGameTilesData(gameId);
   const users = useGameUsersData(gameId);
+  const myUser = useGameUserData(gameId, myUserId);
 
   // aliases
-  const loaded = game.loaded && tiles.loaded && users.loaded;
-  const error = game.error || tiles.error || users.error;
-  const myUserId = auth.user?.id;
+  const loaded = game.loaded && tiles.loaded && users.loaded && myUser;
+  const error = game.error || tiles.error || users.error || myUser.error;
   const userIds = game.data?.userIds || [];
   const currentTurnUserId = game.data?.currentTurnUserId;
+  const focusedSocket = myUser.data?.focusedSocket;
+  const focusedTileId = myUser.data?.focusedTileId;
+
+  // calculated values
   const previousTurnUserId = usePrevious(currentTurnUserId);
   const hasStarted = !!currentTurnUserId;
   const isMyTurn = !!currentTurnUserId && currentTurnUserId === myUserId;
   const justBecameMyTurn = isMyTurn && (currentTurnUserId !== previousTurnUserId);
-
-  // filters & aggregators
+  // TODO: check if socket is empty OR clear socket when ending turn
+  const canPlaceFocusedTile = isMyTurn && !!focusedSocket && !!focusedTileId;
   // TODO: memoize
   const myTiles = filter(tiles.data, { userId: myUserId });
+  const focusedTile = find(myTiles, { id: focusedTileId });
   const myTilesInHand = filter(myTiles, { isPlaced: false });
   const canDrawTile = myTilesInHand.length < HAND_SIZE;
   const emptySlotsInHand = Math.max(HAND_SIZE - myTilesInHand.length, 0);
@@ -53,7 +62,7 @@ const useCreateGameVM = ({ gameId }) => {
   const tileSockets = createSockets(placedTilesHash);
 
   // functions
-  // TODO: useCallback
+  // TODO: useCallback?
   const drawTile = () => {
     return dealGameUserTile(gameId, myUserId);
   };
@@ -73,8 +82,18 @@ const useCreateGameVM = ({ gameId }) => {
     return incrementGameUserScore(gameId, userId, value);
   };
 
-  const placeTile = (tileId, x, y) => {
-    return placeGameTile(gameId, tileId, x, y);
+  // const placeTile = (tileId, x, y) => {
+  //   return placeGameTile(gameId, tileId, x, y);
+  // };
+
+  const placeFocusedTile = async () => {
+    const { x, y } = focusedSocket;
+    await placeGameTile(gameId, focusedTileId, x, y);
+    await Promise.all([
+      setGameUserFocusedSocket(gameId, myUserId, null),
+      setGameUserFocusedTileId(gameId, myUserId, null),
+    ]);
+    return incrementTurn;
   };
 
   const restart = async () => {
@@ -91,7 +110,14 @@ const useCreateGameVM = ({ gameId }) => {
     return true;
   };
 
-  // TODO: add tileFocus, setTileFocus, isFocusedTileEmpty
+  const setFocusedSocket = (socket) => {
+    return setGameUserFocusedSocket(gameId, myUserId, socket);
+  };
+
+  const setFocusedTileId = (tileId) => {
+    return setGameUserFocusedTileId(gameId, myUserId, tileId);
+  };
+
   const vm = {
     loaded,
     error,
@@ -100,25 +126,28 @@ const useCreateGameVM = ({ gameId }) => {
     tiles: tiles.data,
     users: users.data,
     canDrawTile,
+    canPlaceFocusedTile,
     currentTurnUserId,
     emptySlotsInHand,
+    focusedSocket,
+    focusedTile,
     hasStarted,
-    isFocusedTileEmpty: false,
     isMyTurn,
     justBecameMyTurn,
     myTiles,
     myTilesInHand,
     placedTiles,
     placedTilesHash,
-    tileFocus: null,
     tileSockets,
     usersInTurnOrder,
     drawTile,
-    incrementTurn,
+    // incrementTurn,
     incrementUserScore,
-    placeTile,
+    placeFocusedTile,
+    // placeTile,
     restart,
-    setTileFocus: () => {},
+    setFocusedSocket,
+    setFocusedTileId,
   };
 
   // console.log(vm);

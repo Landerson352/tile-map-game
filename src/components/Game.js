@@ -95,15 +95,18 @@ const InvitationButton = (props) => {
 };
 
 const AdvanceTurnTester = (props) => {
-  const { currentTurnUserId, incrementTurn } = useGameVM();
+  const { canPlaceFocusedTile, hasStarted, placeFocusedTile } = useGameVM();
+
+  if (!hasStarted) return null;
 
   return (
     <Button
       rightIcon="arrow-alt-to-right"
-      onClick={incrementTurn}
+      onClick={placeFocusedTile}
       {...props}
+      disabled={!canPlaceFocusedTile}
     >
-      {currentTurnUserId ? 'End turn' : 'Start game'}
+      End turn
     </Button>
   );
 };
@@ -162,17 +165,15 @@ const TileWrapper = (props) => {
   ];
 
   return (
-    <g style={{ transform: transforms.join(' ') }} {...restProps} />
+    <g style={{ transform: transforms.join(' '), transition: 'transform 0.3s' }} {...restProps} />
   );
 };
 
 const Tile = (props) => {
   const { tileData } = props;
-  const { setTileFocus } = useGameVM();
-
   return (
-    <TileWrapper onClick={() => setTileFocus(tileData)} {...props}>
-      <rect width={100} height={100} fill="green" stroke="green" strokeWidth={2} />
+    <TileWrapper {...props}>
+      <rect width={100} height={100} fill={tileData.color} />
     </TileWrapper>
   );
 };
@@ -180,11 +181,14 @@ const Tile = (props) => {
 const TileSocket = (props) => {
   const { x, y } = props;
   const tileData = { x, y };
-  const { placeTile, setTileFocus } = useGameVM();
+  const { setFocusedTileId, setFocusedSocket } = useGameVM();
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'TILE',
     drop: ({ tileData: { id } }) => {
-      return placeTile(id, x, y)
+      return Promise.all([
+        setFocusedSocket({ x, y }),
+        setFocusedTileId(id),
+      ])
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
@@ -205,7 +209,7 @@ const TileSocket = (props) => {
   }
 
   return (
-    <TileWrapper tileData={tileData}>
+    <TileWrapper tileData={tileData} cursor="pointer">
       <rect
         ref={drop}
         width={100}
@@ -213,19 +217,19 @@ const TileSocket = (props) => {
         fill={fill}
         stroke={stroke}
         strokeWidth={1}
-        onClick={() => setTileFocus(tileData)}
+        onClick={() => setFocusedSocket({ x, y })}
       />
     </TileWrapper>
   );
 };
 
 const TileFocusRing = () => {
-  const { isFocusedTileEmpty, tileFocus } = useGameVM();
+  const { focusedSocket } = useGameVM();
 
-  if (!tileFocus) return null;
+  if (!focusedSocket) return null;
 
   return (
-    <TileWrapper tileData={tileFocus}>
+    <TileWrapper tileData={focusedSocket}>
       <rect
         style={{ pointerEvents: 'none' }}
         width={108}
@@ -234,7 +238,7 @@ const TileFocusRing = () => {
         y={-4}
         rx={2}
         fill="transparent"
-        stroke={isFocusedTileEmpty ? 'cyan' : 'red'}
+        stroke="cyan"
         strokeWidth={4}
       />
     </TileWrapper>
@@ -243,6 +247,7 @@ const TileFocusRing = () => {
 
 const InventoryTile = (props) => {
   const { tileData } = props;
+  const { focusedTile, setFocusedTileId } = useGameVM();
   const [{ isDragging }, drag] = useDrag({
     item: {
       type: 'TILE',
@@ -252,14 +257,19 @@ const InventoryTile = (props) => {
       isDragging: !!monitor.isDragging()
     })
   });
+  const isFocused = tileData.id === focusedTile?.id;
+  const opacity = isDragging || isFocused ? 0.1 : 1;
 
   return (
     <Box
       ref={drag}
-      opacity={isDragging ? 0 :1}
+      opacity={opacity}
+      onClick={() => setFocusedTileId(tileData.id)}
+      cursor={isDragging ? 'grabbing' : 'grab' }
+      transition="opacity 0.5s"
     >
       <svg width={100} height={100}>
-        <Tile />
+        <Tile tileData={tileData} />
       </svg>
     </Box>
   );
@@ -267,7 +277,7 @@ const InventoryTile = (props) => {
 
 const GameView = () => {
   const vm = useGameVM();
-  const { drawTile, emptySlotsInHand, gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
+  const { drawTile, emptySlotsInHand, focusedTile, focusedSocket, gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
 
@@ -277,7 +287,7 @@ const GameView = () => {
         <>
           {hasStarted ? (
             <>
-              <Box viewBox="-200 -200 400 400" as="svg" cursor="pointer" height="100%" width="100%" _focus={{ outline: 'none' }}>
+              <Box viewBox="-200 -200 400 400" as="svg" height="100%" width="100%" _focus={{ outline: 'none' }}>
                 <g ref={svgRef}>
                   {map(tileSockets, ({ key, x, y }) => (
                     <TileSocket
@@ -293,6 +303,9 @@ const GameView = () => {
                     />
                   ))}
                   <TileFocusRing />
+                  {!!focusedTile && !!focusedSocket && (
+                    <Tile tileData={{ ...focusedTile, ...focusedSocket }} />
+                  )}
                 </g>
               </Box>
               <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
@@ -302,7 +315,7 @@ const GameView = () => {
                   ))}
                   {times(emptySlotsInHand, (i) => (
                     <Flex key={i} width={100} height={100} alignItems="center" justifyContent="center">
-                      {i === 0 && (
+                      {i === emptySlotsInHand - 1 && (
                         <Button onClick={drawTile}>Draw</Button>
                       )}
                     </Flex>
