@@ -11,7 +11,6 @@ import {
 import { map, times } from 'lodash';
 import { useCopyToClipboard } from 'react-use';
 import { Link } from 'react-router-dom';
-import { useDrag, useDrop } from 'react-dnd';
 
 import usePanZoom from '../lib/useSvgPanZoom';
 import SimpleModal from '../lib/components/SimpleModal';
@@ -147,13 +146,13 @@ const AddPlayerButton = (props) => {
   );
 };
 
-const ResetGameButton = (props) => {
-  const { restart } = useGameVM();
-
-  return (
-    <IconButton onClick={restart} {...props} />
-  );
-};
+// const ResetGameButton = (props) => {
+//   const { restart } = useGameVM();
+//
+//   return (
+//     <IconButton onClick={restart} {...props} />
+//   );
+// };
 
 const TileWrapper = (props) => {
   const { size = 100, tileData = {}, ...restProps } = props;
@@ -170,10 +169,25 @@ const TileWrapper = (props) => {
 };
 
 const Tile = (props) => {
-  const { tileData } = props;
+  const { selected, tileData } = props;
   return (
     <TileWrapper {...props}>
-      <rect width={100} height={100} fill={tileData.color} />
+      {!!tileData.id && (
+        <rect width={100} height={100} fill={tileData.color} />
+      )}
+      {selected && (
+        <rect
+          style={{ pointerEvents: 'none' }}
+          width={108}
+          height={108}
+          x={-4}
+          y={-4}
+          rx={2}
+          fill="transparent"
+          stroke="cyan"
+          strokeWidth={4}
+        />
+      )}
     </TileWrapper>
   );
 };
@@ -181,41 +195,15 @@ const Tile = (props) => {
 const TileSocket = (props) => {
   const { x, y } = props;
   const tileData = { x, y };
-  const { setFocusedTileId, setFocusedSocket } = useGameVM();
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: 'TILE',
-    drop: ({ tileData: { id } }) => {
-      return Promise.all([
-        setFocusedSocket({ x, y }),
-        setFocusedTileId(id),
-      ])
-    },
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-      canDrop: !!monitor.canDrop()
-    })
-  });
-
-  let fill = 'transparent';
-  let stroke = '#ddd';
-  if (isOver) {
-    if (canDrop) {
-      fill = 'rgba(0,0,255,0.2)';
-      stroke = 'blue';
-    } else {
-      fill = 'rgba(255,0,0,0.2)';
-      stroke = 'red';
-    }
-  }
+  const { setFocusedSocket } = useGameVM();
 
   return (
     <TileWrapper tileData={tileData} cursor="pointer">
       <rect
-        ref={drop}
         width={100}
         height={100}
-        fill={fill}
-        stroke={stroke}
+        fill="transparent"
+        stroke="#ddd"
         strokeWidth={1}
         onClick={() => setFocusedSocket({ x, y })}
       />
@@ -223,53 +211,41 @@ const TileSocket = (props) => {
   );
 };
 
-const TileFocusRing = () => {
-  const { focusedSocket } = useGameVM();
-
-  if (!focusedSocket) return null;
-
-  return (
-    <TileWrapper tileData={focusedSocket}>
-      <rect
-        style={{ pointerEvents: 'none' }}
-        width={108}
-        height={108}
-        x={-4}
-        y={-4}
-        rx={2}
-        fill="transparent"
-        stroke="cyan"
-        strokeWidth={4}
-      />
-    </TileWrapper>
-  );
-};
+// const TileFocusRing = () => {
+//   const { focusedSocket } = useGameVM();
+//
+//   if (!focusedSocket) return null;
+//
+//   return (
+//     <TileWrapper tileData={focusedSocket}>
+//       <rect
+//         style={{ pointerEvents: 'none' }}
+//         width={108}
+//         height={108}
+//         x={-4}
+//         y={-4}
+//         rx={2}
+//         fill="transparent"
+//         stroke="cyan"
+//         strokeWidth={4}
+//       />
+//     </TileWrapper>
+//   );
+// };
 
 const InventoryTile = (props) => {
   const { tileData } = props;
   const { focusedTile, setFocusedTileId } = useGameVM();
-  const [{ isDragging }, drag] = useDrag({
-    item: {
-      type: 'TILE',
-      tileData,
-    },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging()
-    })
-  });
   const isFocused = tileData.id === focusedTile?.id;
-  const opacity = isDragging || isFocused ? 0.1 : 1;
 
   return (
     <Box
-      ref={drag}
-      opacity={opacity}
       onClick={() => setFocusedTileId(tileData.id)}
-      cursor={isDragging ? 'grabbing' : 'grab' }
-      transition="opacity 0.5s"
+      cursor="pointer"
+      margin="-8px"
     >
-      <svg width={100} height={100}>
-        <Tile tileData={tileData} />
+      <svg width={116} height={116} viewBox="-8 -8 116 116">
+        <Tile tileData={tileData} selected={isFocused} />
       </svg>
     </Box>
   );
@@ -302,9 +278,8 @@ const GameView = () => {
                       tileData={tile}
                     />
                   ))}
-                  <TileFocusRing />
-                  {!!focusedTile && !!focusedSocket && (
-                    <Tile tileData={{ ...focusedTile, ...focusedSocket }} />
+                  {focusedSocket && (
+                    <Tile selected tileData={{ ...focusedTile, ...focusedSocket }} />
                   )}
                 </g>
               </Box>
@@ -334,7 +309,7 @@ const GameView = () => {
             <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" py={2} px={4} rounded={36} pointerEvents="all" spacing={3}>
               <Players marginRight={16} />
               <AddPlayerButton icon="user-plus" isRound />
-              <ResetGameButton icon="redo-alt" isRound />
+              {/*<ResetGameButton icon="redo-alt" isRound />*/}
               <IconButton as={Link} to="/" icon="power-off" isRound />
               <AdvanceTurnTester gameId={gameId} />
             </Stack>
