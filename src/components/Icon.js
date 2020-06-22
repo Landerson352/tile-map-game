@@ -13,6 +13,7 @@ import {
   faRedoAlt,
   faPowerOff,
   faSignOutAlt,
+  faUndoAlt,
   faUserPlus,
 } from '@fortawesome/pro-light-svg-icons';
 
@@ -26,6 +27,7 @@ const icons = [
   faRedoAlt,
   faPowerOff,
   faSignOutAlt,
+  faUndoAlt,
   faUserPlus,
 ];
 

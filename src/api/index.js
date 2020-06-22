@@ -1,21 +1,34 @@
 import firebase from 'firebase';
-import { map, random, sample, times } from 'lodash';
+import { map, random, times } from 'lodash';
 
 import { updateUser } from '../lib/useAuth';
 import useCollectionData from '../lib/useCollectionData';
 import useDocumentData from '../lib/useDocumentData';
+import weightedSample from '../utils/weightedSample';
 
 const db = firebase.firestore;
 const { arrayUnion, increment } = firebase.firestore.FieldValue;
 
 export const HAND_SIZE = 7;
 export const EDGES = {
-  oooo: {},
-  cooo: {},
-  ccoo: {},
-  ccco: {},
-  cccc: {},
-  coco: {},
+  oooo: {
+    weight: 2,
+  },
+  cooo: {
+    weight: 6,
+  },
+  ccoo: {
+    weight: 12,
+  },
+  ccco: {
+    weight: 6,
+  },
+  cccc: {
+    weight: 12,
+  },
+  coco: {
+    weight: 12,
+  },
 };
 
 export const addGame = (values) => {
@@ -53,8 +66,9 @@ export const dealGameUserTile = (gameId, userId, tile = null) => {
     userId,
     isPlaced: false,
     color: `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`, // debugging color
-    roads: sample(Object.keys(EDGES)),
-    water: sample(Object.keys(EDGES)),
+    // roads: sample(Object.keys(EDGES)),
+    roads: weightedSample(EDGES),
+    // water: sample(Object.keys(EDGES)),
     rotation: random(0,3),
     // biome: 'forest' | 'snow' | 'desert',
     ...tile,
@@ -105,6 +119,14 @@ export const removeAllGameTiles = async (gameId) => {
 export const removeGame = (id) => {
   return db().collection('games')
     .doc(id).delete();
+};
+
+export const rotateGameTile = (gameId, tileId, value) => {
+  return db().collection('games')
+    .doc(gameId)
+    .collection('tiles')
+    .doc(tileId)
+    .set({ rotation: increment(value) }, { merge: true });
 };
 
 export const setGameUserFocusedSocket = (gameId, userId, focusedSocket) => {

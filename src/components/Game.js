@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 
 import usePanZoom from '../lib/useSvgPanZoom';
 import SimpleModal from '../lib/components/SimpleModal';
+import getEdges from '../utils/getEdges';
 import useMyTurnToaster from '../utils/useMyTurnToaster';
 import { AuthorizedVMProvider } from '../vms/authorized';
 import { GameVMProvider, useGameVM } from '../vms/game';
@@ -93,22 +94,22 @@ const InvitationButton = (props) => {
   );
 };
 
-const AdvanceTurnTester = (props) => {
-  const { canPlaceFocusedTile, hasStarted, placeFocusedTile } = useGameVM();
-
-  if (!hasStarted) return null;
-
-  return (
-    <Button
-      rightIcon="arrow-alt-to-right"
-      onClick={placeFocusedTile}
-      {...props}
-      disabled={!canPlaceFocusedTile}
-    >
-      End turn
-    </Button>
-  );
-};
+// const AdvanceTurnTester = (props) => {
+//   const { canPlaceFocusedTile, hasStarted, placeFocusedTile } = useGameVM();
+//
+//   if (!hasStarted) return null;
+//
+//   return (
+//     <Button
+//       rightIcon="arrow-alt-to-right"
+//       onClick={placeFocusedTile}
+//       {...props}
+//       disabled={!canPlaceFocusedTile}
+//     >
+//       End turn
+//     </Button>
+//   );
+// };
 
 const StartGameButton = () => {
   const { restart } = useGameVM();
@@ -170,47 +171,52 @@ const TileWrapper = (props) => {
 
 const Tile = (props) => {
   const { selected, tileData } = props;
-  const { roads = 'cccc', rotation = 0 } = tileData;
-  const rotatedRoads = (roads + roads).substr(rotation, 4);
+  const { canPlaceFocusedTile, focusedTile } = useGameVM();
+  const edges = getEdges(tileData);
+
+  let focusRingStroke = 'black';
+  if (canPlaceFocusedTile) focusRingStroke = 'green';
+  else if (focusedTile) focusRingStroke = 'red';
+
   return (
     <TileWrapper {...props}>
       {!!tileData.id && (
         <>
-          <rect width={100} height={100} fill={tileData.color} />
-          {rotatedRoads[0] === 'o' && (
+          <rect width={100} height={100} fill="green" />
+          {edges.roads.top && (
             <rect
               width={16}
               height={50 + 8}
               x={50 - 8}
               y={0}
-              fill="black"
+              fill="tan"
             />
           )}
-          {rotatedRoads[1] === 'o' && (
+          {edges.roads.right && (
             <rect
               width={50 + 8}
               height={16}
               x={50 - 8}
               y={50 - 8}
-              fill="black"
+              fill="tan"
             />
           )}
-          {rotatedRoads[2] === 'o' && (
+          {edges.roads.bottom && (
             <rect
               width={16}
               height={50 + 8}
               x={50 - 8}
               y={50 - 8}
-              fill="black"
+              fill="tan"
             />
           )}
-          {rotatedRoads[3] === 'o' && (
+          {edges.roads.left && (
             <rect
               width={50 + 8}
               height={16}
               x={0}
               y={50 - 8}
-              fill="black"
+              fill="tan"
             />
           )}
         </>
@@ -224,7 +230,7 @@ const Tile = (props) => {
           y={-4}
           rx={2}
           fill="transparent"
-          stroke="cyan"
+          stroke={focusRingStroke}
           strokeWidth={4}
         />
       )}
@@ -245,8 +251,8 @@ const TileSocket = (props) => {
         x={8}
         y={8}
         rx={8}
-        fill="transparent"
-        stroke="#ddd"
+        fill="#f3f3f3"
+        stroke="#ccc"
         strokeDasharray="8 2"
         strokeWidth={2}
         onClick={() => setFocusedSocket({ x, y })}
@@ -297,7 +303,20 @@ const InventoryTile = (props) => {
 
 const GameView = () => {
   const vm = useGameVM();
-  const { drawTile, emptySlotsInHand, focusedTile, focusedSocket, gameId, hasStarted, myTilesInHand, placedTiles, tileSockets } = vm;
+  const {
+    canPlaceFocusedTile,
+    drawTile,
+    emptySlotsInHand,
+    focusedTile,
+    focusedSocket,
+    gameId,
+    hasStarted,
+    myTilesInHand,
+    placedTiles,
+    placeFocusedTile,
+    rotateFocusedTile,
+    tileSockets
+  } = vm;
   const svgRef = usePanZoom();
   useMyTurnToaster(gameId);
 
@@ -327,7 +346,28 @@ const GameView = () => {
                   )}
                 </g>
               </Box>
-              <Stack isInline justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
+              <Stack alignItems="center" justifyContent="center" position="fixed" bottom={2} left={0} right={0}>
+                {!!focusedTile && (
+                  <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
+                    <IconButton
+                      onClick={() => rotateFocusedTile(-1)}
+                      icon="undo-alt"
+                      isRound
+                    />
+                    <Button
+                      variantColor="green"
+                      disabled={!canPlaceFocusedTile}
+                      onClick={placeFocusedTile}
+                    >
+                      Place tile
+                    </Button>
+                    <IconButton
+                      onClick={() => rotateFocusedTile(1)}
+                      icon="redo-alt"
+                      isRound
+                    />
+                  </Stack>
+                )}
                 <Stack isInline alignItems="center" justifyContent="center" bg="gray.300" p={4} rounded={16} pointerEvents="all" spacing={4} shouldWrapChildren>
                   {map(myTilesInHand, (tile, i) => (
                     <InventoryTile key={i} tileData={tile} />
@@ -355,7 +395,7 @@ const GameView = () => {
               <AddPlayerButton icon="user-plus" isRound />
               {/*<ResetGameButton icon="redo-alt" isRound />*/}
               <IconButton as={Link} to="/" icon="power-off" isRound />
-              <AdvanceTurnTester gameId={gameId} />
+              {/*<AdvanceTurnTester gameId={gameId} />*/}
             </Stack>
           </Stack>
         </>

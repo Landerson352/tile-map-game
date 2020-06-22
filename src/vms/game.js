@@ -4,6 +4,7 @@ import { usePrevious } from 'react-use';
 
 import useAuth from '../lib/useAuth';
 import createSockets from '../utils/createSockets';
+import isTilePlacementValid from '../utils/isTilePlacementValid';
 import {
   HAND_SIZE,
   dealGameUserTile,
@@ -11,6 +12,7 @@ import {
   incrementGameUserScore,
   placeGameTile,
   removeAllGameTiles,
+  rotateGameTile,
   setGameUserFocusedSocket,
   setGameUserFocusedTileId,
   updateGame,
@@ -41,8 +43,6 @@ const useCreateGameVM = ({ gameId }) => {
   const hasStarted = !!currentTurnUserId;
   const isMyTurn = !!currentTurnUserId && currentTurnUserId === myUserId;
   const justBecameMyTurn = isMyTurn && (currentTurnUserId !== previousTurnUserId);
-  // TODO: check if socket is empty OR clear socket when ending turn
-  const canPlaceFocusedTile = isMyTurn && !!focusedSocket && !!focusedTileId;
   // TODO: memoize
   const myTiles = filter(tiles.data, { userId: myUserId });
   const focusedTile = find(myTiles, { id: focusedTileId });
@@ -60,6 +60,8 @@ const useCreateGameVM = ({ gameId }) => {
     };
   }, {});
   const tileSockets = createSockets(placedTilesHash);
+
+  const canPlaceFocusedTile = isMyTurn && !!focusedSocket && !!focusedTileId && isTilePlacementValid({...focusedTile, ...focusedSocket }, placedTilesHash);
 
   // functions
   // TODO: useCallback?
@@ -110,6 +112,10 @@ const useCreateGameVM = ({ gameId }) => {
     return true;
   };
 
+  const rotateFocusedTile = (value) => {
+    return rotateGameTile(gameId, focusedTileId, value);
+  };
+
   const setFocusedSocket = (socket) => {
     return setGameUserFocusedSocket(gameId, myUserId, socket);
   };
@@ -146,6 +152,7 @@ const useCreateGameVM = ({ gameId }) => {
     placeFocusedTile,
     // placeTile,
     restart,
+    rotateFocusedTile,
     setFocusedSocket,
     setFocusedTileId,
   };
