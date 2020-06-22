@@ -311,6 +311,7 @@ const GameView = () => {
     focusedSocket,
     gameId,
     hasStarted,
+    isMyTurn,
     myTilesInHand,
     placedTiles,
     placeFocusedTile,
@@ -328,7 +329,7 @@ const GameView = () => {
             <>
               <Box viewBox="-200 -200 400 400" as="svg" height="100%" width="100%" _focus={{ outline: 'none' }}>
                 <g ref={svgRef}>
-                  {map(tileSockets, ({ key, x, y }) => (
+                  {isMyTurn && map(tileSockets, ({ key, x, y }) => (
                     <TileSocket
                       key={key}
                       x={x}
@@ -341,7 +342,7 @@ const GameView = () => {
                       tileData={tile}
                     />
                   ))}
-                  {focusedSocket && (
+                  {isMyTurn && focusedSocket && (
                     <Tile selected tileData={{ ...focusedTile, ...focusedSocket }} />
                   )}
                 </g>

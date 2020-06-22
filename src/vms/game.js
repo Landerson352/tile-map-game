@@ -95,7 +95,7 @@ const useCreateGameVM = ({ gameId }) => {
       setGameUserFocusedSocket(gameId, myUserId, null),
       setGameUserFocusedTileId(gameId, myUserId, null),
     ]);
-    return incrementTurn;
+    return incrementTurn();
   };
 
   const restart = async () => {
