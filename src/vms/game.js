@@ -5,30 +5,15 @@ import { usePrevious } from 'react-use';
 import useAuth from '../lib/useAuth';
 import createSockets from '../utils/createSockets';
 import isTilePlacementValid from '../utils/isTilePlacementValid';
-import {
-  HAND_SIZE,
-  dealGameUserTile,
-  dealGameUserTiles,
-  incrementGameUserScore,
-  placeGameTile,
-  removeAllGameTiles,
-  rotateGameTile,
-  setGameUserFocusedSocket,
-  setGameUserFocusedTileId,
-  updateGame,
-  useGameData,
-  useGameTilesData,
-  useGameUserData,
-  useGameUsersData,
-} from '../api';
+import api from '../api';
 
 const useCreateGameVM = ({ gameId }) => {
   const auth = useAuth();
   const myUserId = auth.user?.id;
-  const game = useGameData(gameId);
-  const tiles = useGameTilesData(gameId);
-  const users = useGameUsersData(gameId);
-  const myUser = useGameUserData(gameId, myUserId);
+  const game = api.useGameData(gameId);
+  const tiles = api.useGameTilesData(gameId);
+  const users = api.useGameUsersData(gameId);
+  const myUser = api.useGameUserData(gameId, myUserId);
 
   // aliases
   const loaded = game.loaded && tiles.loaded && users.loaded && myUser;
@@ -47,8 +32,8 @@ const useCreateGameVM = ({ gameId }) => {
   const myTiles = filter(tiles.data, { userId: myUserId });
   const focusedTile = find(myTiles, { id: focusedTileId });
   const myTilesInHand = filter(myTiles, { isPlaced: false });
-  const canDrawTile = myTilesInHand.length < HAND_SIZE;
-  const emptySlotsInHand = Math.max(HAND_SIZE - myTilesInHand.length, 0);
+  const canDrawTile = myTilesInHand.length < api.HAND_SIZE;
+  const emptySlotsInHand = Math.max(api.HAND_SIZE - myTilesInHand.length, 0);
   const placedTiles = filter(tiles.data, { isPlaced: true });
   const usersInTurnOrder = map(game.data?.userIds, (id) => {
     return find(users.data, { id });
@@ -66,7 +51,7 @@ const useCreateGameVM = ({ gameId }) => {
   // functions
   // TODO: useCallback?
   const drawTile = () => {
-    return dealGameUserTile(gameId, myUserId);
+    return api.dealGameUserTile(gameId, myUserId);
   };
 
   const incrementTurn = () => {
@@ -75,13 +60,13 @@ const useCreateGameVM = ({ gameId }) => {
     const index = userIds.indexOf(currentTurnUserId);
     const nextIndex = (index + 1 ) % userIds.length;
 
-    return updateGame(gameId, {
+    return api.updateGame(gameId, {
       currentTurnUserId: userIds[nextIndex],
     });
   };
 
   const incrementUserScore = (userId, value) => {
-    return incrementGameUserScore(gameId, userId, value);
+    return api.incrementGameUserScore(gameId, userId, value);
   };
 
   // const placeTile = (tileId, x, y) => {
@@ -90,10 +75,10 @@ const useCreateGameVM = ({ gameId }) => {
 
   const placeFocusedTile = async () => {
     const { x, y } = focusedSocket;
-    await placeGameTile(gameId, focusedTileId, x, y);
+    await api.placeGameTile(gameId, focusedTileId, x, y);
     await Promise.all([
-      setGameUserFocusedSocket(gameId, myUserId, null),
-      setGameUserFocusedTileId(gameId, myUserId, null),
+      api.setGameUserFocusedSocket(gameId, myUserId, null),
+      api.setGameUserFocusedTileId(gameId, myUserId, null),
     ]);
     return incrementTurn();
   };
@@ -101,27 +86,27 @@ const useCreateGameVM = ({ gameId }) => {
   const restart = async () => {
     if (isEmpty(userIds)) return null;
 
-    await removeAllGameTiles(gameId);
+    await api.removeAllGameTiles(gameId);
     // Give each user a hand of tiles
     await Promise.all(map(userIds, (userId) => {
-      return dealGameUserTiles(gameId, userId, HAND_SIZE);
+      return api.dealGameUserTiles(gameId, userId, api.HAND_SIZE);
     }));
-    await updateGame(gameId, {
+    await api.updateGame(gameId, {
       currentTurnUserId: sample(userIds),
     });
     return true;
   };
 
   const rotateFocusedTile = (value) => {
-    return rotateGameTile(gameId, focusedTileId, value);
+    return api.rotateGameTile(gameId, focusedTileId, value);
   };
 
   const setFocusedSocket = (socket) => {
-    return setGameUserFocusedSocket(gameId, myUserId, socket);
+    return api.setGameUserFocusedSocket(gameId, myUserId, socket);
   };
 
   const setFocusedTileId = (tileId) => {
-    return setGameUserFocusedTileId(gameId, myUserId, tileId);
+    return api.setGameUserFocusedTileId(gameId, myUserId, tileId);
   };
 
   const vm = {

@@ -2,27 +2,27 @@ import React from 'react';
 import { isEmpty } from 'lodash';
 
 import useAuth from '../lib/useAuth';
-import { addGame, addGameUser, useUserGames } from '../api';
+import api from '../api';
 
 const useCreateAuthorizedVM = () => {
   const auth = useAuth();
   const myUserId = auth.user?.id;
-  const myGames = useUserGames(myUserId);
+  const myGames = api.useUserGames(myUserId);
 
   // functions
   // TODO: useCallback
   const hostGame = async (gameValues, userValues) => {
-    const game = await addGame({
+    const game = await api.addGame({
       ...gameValues,
       hostUserId: myUserId,
     });
-    await addGameUser(game.id, myUserId, userValues);
+    await api.addGameUser(game.id, myUserId, userValues);
     return game;
   };
 
   const joinGame = (gameId, userValues) => {
     if (!myUserId) return false;
-    return addGameUser(gameId, myUserId, userValues);
+    return api.addGameUser(gameId, myUserId, userValues);
   };
 
   const vm = {

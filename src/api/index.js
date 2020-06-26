@@ -1,71 +1,27 @@
 import firebase from 'firebase';
 import { map, random, times } from 'lodash';
 
-import { updateUser } from '../lib/useAuth';
-import useCollectionData from '../lib/useCollectionData';
-import useDocumentData from '../lib/useDocumentData';
 import weightedSample from '../utils/weightedSample';
+import dataLayer from './dataLayer';
 
-const db = firebase.firestore;
-const { arrayUnion, increment } = firebase.firestore.FieldValue;
+const { increment } = firebase.firestore.FieldValue;
 
 export const HAND_SIZE = 7;
 export const EDGES = {
-  oooo: {
-    weight: 2,
-  },
-  cooo: {
-    weight: 6,
-  },
-  ccoo: {
-    weight: 12,
-  },
-  ccco: {
-    weight: 6,
-  },
-  cccc: {
-    weight: 12,
-  },
-  coco: {
-    weight: 12,
-  },
+  oooo: { weight: 2 },
+  cooo: { weight: 6 },
+  ccoo: { weight: 12 },
+  ccco: { weight: 6 },
+  cccc: { weight: 12 },
+  coco: { weight: 12 },
 };
 
-export const addGame = (values) => {
-  return db().collection('games').add({
-    name: 'Untitled Game',
-    ...values,
-  });
-};
-
-export const addGameTile = (gameId, values) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('tiles')
-    .add(values);
-};
-
-export const addGameUser = async (gameId, userId, values) => {
-  const gameUser = await db().collection('games')
-    .doc(gameId)
-    .collection('users')
-    .doc(userId)
-    .set(values, { merge: true });
-  // Update the normalization arrays
-  await updateUser(userId, {
-    gameIds: arrayUnion(gameId),
-  });
-  await updateGame(gameId, {
-    userIds: arrayUnion(userId),
-  });
-  return gameUser;
-};
-
+// Business layer
 export const dealGameUserTile = (gameId, userId, tile = null) => {
-  return addGameTile(gameId, {
+  return dataLayer.addGameTile(gameId, {
     userId,
     isPlaced: false,
-    color: `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`, // debugging color
+    // color: `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`, // debugging color
     // roads: sample(Object.keys(EDGES)),
     roads: weightedSample(EDGES),
     // water: sample(Object.keys(EDGES)),
@@ -83,108 +39,46 @@ export const dealGameUserTiles = async (gameId, userId, number) => {
 };
 
 export const incrementGameUserScore = (gameId, userId, value) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('users')
-    .doc(userId)
-    .set({ score: increment(value) }, { merge: true });
+  return dataLayer.updateGameUser(gameId, userId, { score: increment(value) });
 };
 
 export const placeGameTile = (gameId, tileId, x, y) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('tiles')
-    .doc(tileId)
-    .set({ x, y, isPlaced: true }, { merge: true });
+  return dataLayer.updateGameTile(gameId, tileId, { x, y, isPlaced: true });
 };
 
 export const removeAllGameTiles = async (gameId) => {
   // read count: tiles
-  const tiles = await db().collection('games')
-    .doc(gameId)
-    .collection('tiles')
-    .get();
-
+  const tiles = await dataLayer.getGame(gameId);
   const promises = map(tiles.docs, ({ id: tileId }) => {
-    return db().collection('games')
-      .doc(gameId)
-      .collection('tiles')
-      .doc(tileId)
-      .delete();
+    return dataLayer.deleteGameTile(gameId, tileId);
   });
-
   return Promise.all(promises);
 };
 
-export const removeGame = (id) => {
-  return db().collection('games')
-    .doc(id).delete();
-};
-
 export const rotateGameTile = (gameId, tileId, value) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('tiles')
-    .doc(tileId)
-    .set({ rotation: increment(value) }, { merge: true });
+  return dataLayer.updateGameTile(gameId, tileId, { rotation: increment(value) });
 };
 
 export const setGameUserFocusedSocket = (gameId, userId, focusedSocket) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('users')
-    .doc(userId)
-    .set({ focusedSocket }, { merge: true });
+  return dataLayer.updateGameUser(gameId, userId, { focusedSocket });
 };
 
 export const setGameUserFocusedTileId = (gameId, userId, focusedTileId) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('users')
-    .doc(userId)
-    .set({ focusedTileId }, { merge: true });
+  return dataLayer.updateGameUser(gameId, userId, { focusedTileId });
 };
 
-export const updateGame = (id, values) => {
-  return db().collection('games')
-    .doc(id)
-    .set(values, { merge: true });
-};
+export default {
+  ...dataLayer,
 
-export const updateGameUser = (gameId, userId, values) => {
-  return db().collection('games')
-    .doc(gameId)
-    .collection('users')
-    .doc(userId)
-    .set(values, { merge: true });
-};
+  HAND_SIZE,
+  EDGES,
 
-// read count: 1
-export const useGameData = (gameId) => useDocumentData(
-  db().collection('games')
-    .doc(gameId)
-);
-// read count: tiles.length
-export const useGameTilesData = (gameId) =>  useCollectionData(
-  db().collection('games')
-    .doc(gameId)
-    .collection('tiles')
-);
-// read count: 1
-export const useGameUserData = (gameId, userId) => useDocumentData(
-  db().collection('games')
-    .doc(gameId)
-    .collection('users')
-    .doc(userId)
-);
-// read count: users.length
-export const useGameUsersData = (gameId) => useCollectionData(
-  db().collection('games')
-    .doc(gameId)
-    .collection('users')
-);
-// read count: user.n.games.length
-export const useUserGames = (userId) => useCollectionData(
-  db().collection('games')
-    .where('userIds', 'array-contains', userId)
-);
+  dealGameUserTile,
+  dealGameUserTiles,
+  incrementGameUserScore,
+  placeGameTile,
+  removeAllGameTiles,
+  rotateGameTile,
+  setGameUserFocusedSocket,
+  setGameUserFocusedTileId,
+};
