@@ -241,10 +241,15 @@ const Tile = (props) => {
 const TileSocket = (props) => {
   const { x, y } = props;
   const tileData = { x, y };
-  const { setFocusedSocket } = useGameVM();
+  const { isMyTurn, setFocusedSocket } = useGameVM();
+
+  const tileWrapperProps = {
+    cursor: isMyTurn ? 'pointer' : null,
+    pointerEvents: isMyTurn ? null : 'none',
+  };
 
   return (
-    <TileWrapper tileData={tileData} cursor="pointer">
+    <TileWrapper tileData={tileData} {...tileWrapperProps}>
       <rect
         width={84}
         height={84}
@@ -329,7 +334,7 @@ const GameView = () => {
             <>
               <Box viewBox="-200 -200 400 400" as="svg" height="100%" width="100%" _focus={{ outline: 'none' }}>
                 <g ref={svgRef}>
-                  {isMyTurn && map(tileSockets, ({ key, x, y }) => (
+                  {map(tileSockets, ({ key, x, y }) => (
                     <TileSocket
                       key={key}
                       x={x}
