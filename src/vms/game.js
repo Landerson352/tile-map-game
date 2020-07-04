@@ -4,6 +4,7 @@ import { usePrevious } from 'react-use';
 
 import useAuth from '../lib/useAuth';
 import createSockets from '../utils/createSockets';
+import getRelevantPlacedTiles from '../utils/getRelevantPlacedTiles';
 import isTilePlacementValid from '../utils/isTilePlacementValid';
 import api from '../api';
 
@@ -46,7 +47,10 @@ const useCreateGameVM = ({ gameId }) => {
   }, {});
   const tileSockets = createSockets(placedTilesHash);
 
-  const canPlaceFocusedTile = isMyTurn && !!focusedSocket && !!focusedTileId && isTilePlacementValid({...focusedTile, ...focusedSocket }, placedTilesHash);
+  const canPlaceFocusedTile = isMyTurn
+    && !!focusedSocket
+    && !!focusedTileId
+    && isTilePlacementValid({...focusedTile, ...focusedSocket }, placedTilesHash);
 
   // functions
   // TODO: useCallback?
@@ -80,6 +84,9 @@ const useCreateGameVM = ({ gameId }) => {
       api.setGameUserFocusedSocket(gameId, myUserId, null),
       api.setGameUserFocusedTileId(gameId, myUserId, null),
     ]);
+    const relevantTiles = getRelevantPlacedTiles(focusedSocket, placedTilesHash);
+    const points = relevantTiles.surroundingTiles.length + 1;
+    await incrementUserScore(myUserId, points);
     return incrementTurn();
   };
 

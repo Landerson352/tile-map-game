@@ -178,11 +178,20 @@ const Tile = (props) => {
   if (canPlaceFocusedTile) focusRingStroke = 'green';
   else if (focusedTile) focusRingStroke = 'red';
 
+  // console.log(tileData.biome);
+
+  const biomeFill = {
+    FOREST: 'forestgreen',
+    PASTURE: 'darkseagreen',
+    WATER: 'darkturquoise',
+    NULL: 'black',
+  }[tileData.biome || 'NULL'];
+
   return (
     <TileWrapper {...props}>
       {!!tileData.id && (
         <>
-          <rect width={100} height={100} fill="green" />
+          <rect width={100} height={100} fill={biomeFill} />
           {edges.roads.top && (
             <rect
               width={16}
@@ -217,6 +226,15 @@ const Tile = (props) => {
               x={0}
               y={50 - 8}
               fill="tan"
+            />
+          )}
+          {tileData.isPoi && (
+            <rect
+              width={16}
+              height={16}
+              x={50 - 8}
+              y={50 - 8}
+              fill="black"
             />
           )}
         </>

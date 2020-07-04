@@ -11,22 +11,35 @@ export const EDGES = {
   oooo: { weight: 2 },
   cooo: { weight: 6 },
   ccoo: { weight: 12 },
-  ccco: { weight: 6 },
-  cccc: { weight: 12 },
-  coco: { weight: 12 },
+  ccco: { weight: 12000, canBeOverWater: true },
+  cccc: { weight: 9, canBeOverWater: true },
+  coco: { weight: 12, canBeOverWater: true },
+};
+
+export const DRY_BIOME = {
+  FOREST: { weight: 6 },
+  PASTURE: { weight: 12 },
+};
+
+export const BIOME = {
+  ...DRY_BIOME,
+  WATER: { weight: 6 },
 };
 
 // Business layer
 export const dealGameUserTile = (gameId, userId, tile = null) => {
+  const roads = weightedSample(EDGES);
+  console.log(EDGES[roads].canBeOverWater);
+  const biome = weightedSample(EDGES[roads].canBeOverWater ? BIOME : DRY_BIOME);
+  console.log(biome);
   return dataLayer.addGameTile(gameId, {
     userId,
     isPlaced: false,
+    biome,
     // color: `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`, // debugging color
-    // roads: sample(Object.keys(EDGES)),
-    roads: weightedSample(EDGES),
-    // water: sample(Object.keys(EDGES)),
+    isPoi: roads === 'ccco', // all dead ends are POIs
+    roads,
     rotation: random(0,3),
-    // biome: 'forest' | 'snow' | 'desert',
     ...tile,
   });
 };
@@ -70,6 +83,7 @@ export const setGameUserFocusedTileId = (gameId, userId, focusedTileId) => {
 export default {
   ...dataLayer,
 
+  BIOME,
   HAND_SIZE,
   EDGES,
 
