@@ -328,13 +328,14 @@ const GameView = () => {
   const vm = useGameVM();
   const {
     canPlaceFocusedTile,
-    drawTile,
+    // drawTile,
     emptySlotsInHand,
     focusedTile,
     focusedSocket,
     gameId,
     hasStarted,
     isMyTurn,
+    longestRoad,
     myTilesInHand,
     placedTiles,
     placeFocusedTile,
@@ -398,9 +399,9 @@ const GameView = () => {
                   ))}
                   {times(emptySlotsInHand, (i) => (
                     <Flex key={i} width={100} height={100} alignItems="center" justifyContent="center">
-                      {i === emptySlotsInHand - 1 && (
-                        <Button onClick={drawTile}>Draw</Button>
-                      )}
+                      {/*{i === emptySlotsInHand - 1 && (*/}
+                      {/*  <Button onClick={drawTile}>Draw</Button>*/}
+                      {/*)}*/}
                     </Flex>
                   ))}
                 </Stack>
@@ -419,6 +420,7 @@ const GameView = () => {
               <AddPlayerButton icon="user-plus" isRound />
               {/*<ResetGameButton icon="redo-alt" isRound />*/}
               <IconButton as={Link} to="/" icon="power-off" isRound />
+              <Text>LR: {longestRoad}</Text>
               {/*<AdvanceTurnTester gameId={gameId} />*/}
             </Stack>
           </Stack>

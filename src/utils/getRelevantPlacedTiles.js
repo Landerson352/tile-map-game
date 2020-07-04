@@ -1,20 +1,36 @@
 const getRelevantPlacedTiles = (tile, grid) => {
   const { x, y } = tile;
   const surroundingTiles = [];
+  const surroundingTilesWithMatchingBiome = [];
+  const surroundingTilesWithMatchingBiomeAndPoi = [];
 
-  if (grid[`${x - 1}_${y - 1}`]) surroundingTiles.push(grid[`${x - 1}_${y - 1}`]);
-  if (grid[`${x}_${y - 1}`]) surroundingTiles.push(grid[`${x}_${y - 1}`]);
-  if (grid[`${x + 1}_${y - 1}`]) surroundingTiles.push(grid[`${x + 1}_${y - 1}`]);
+  const checkForSurroundingTile = (testTile) => {
+    if (testTile) {
+      surroundingTiles.push(testTile);
+      if (testTile.biome === tile.biome) {
+        surroundingTilesWithMatchingBiome.push(testTile);
+        if (testTile.isPoi) {
+          surroundingTilesWithMatchingBiomeAndPoi.push(testTile);
+        }
+      }
+    }
+  };
 
-  if (grid[`${x - 1}_${y}`]) surroundingTiles.push(grid[`${x - 1}_${y}`]);
-  if (grid[`${x + 1}_${y}`]) surroundingTiles.push(grid[`${x + 1}_${y}`]);
+  checkForSurroundingTile(grid[`${x - 1}_${y - 1}`]);
+  checkForSurroundingTile(grid[`${x}_${y - 1}`]);
+  checkForSurroundingTile(grid[`${x + 1}_${y - 1}`]);
 
-  if (grid[`${x - 1}_${y + 1}`]) surroundingTiles.push(grid[`${x - 1}_${y + 1}`]);
-  if (grid[`${x}_${y + 1}`]) surroundingTiles.push(grid[`${x}_${y + 1}`]);
-  if (grid[`${x + 1}_${y + 1}`]) surroundingTiles.push(grid[`${x + 1}_${ y + 1}`]);
+  checkForSurroundingTile(grid[`${x - 1}_${y}`]);
+  checkForSurroundingTile(grid[`${x + 1}_${y}`]);
+
+  checkForSurroundingTile(grid[`${x - 1}_${y + 1}`]);
+  checkForSurroundingTile(grid[`${x}_${y + 1}`]);
+  checkForSurroundingTile(grid[`${x + 1}_${y + 1}`]);
 
   return {
     surroundingTiles,
+    surroundingTilesWithMatchingBiome,
+    surroundingTilesWithMatchingBiomeAndPoi,
   };
 };
 

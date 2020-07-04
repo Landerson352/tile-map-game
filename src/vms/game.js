@@ -4,7 +4,8 @@ import { usePrevious } from 'react-use';
 
 import useAuth from '../lib/useAuth';
 import createSockets from '../utils/createSockets';
-import getRelevantPlacedTiles from '../utils/getRelevantPlacedTiles';
+import getLongestRoad from '../utils/getLongestRoad';
+import getTilePoints from '../utils/getTliePoints';
 import isTilePlacementValid from '../utils/isTilePlacementValid';
 import api from '../api';
 
@@ -45,6 +46,7 @@ const useCreateGameVM = ({ gameId }) => {
       [`${tile.x}_${tile.y}`]: tile,
     };
   }, {});
+  const longestRoad = getLongestRoad(placedTilesHash);
   const tileSockets = createSockets(placedTilesHash);
 
   const canPlaceFocusedTile = isMyTurn
@@ -78,16 +80,18 @@ const useCreateGameVM = ({ gameId }) => {
   // };
 
   const placeFocusedTile = async () => {
+    if (!canPlaceFocusedTile) return;
+
     const { x, y } = focusedSocket;
     await api.placeGameTile(gameId, focusedTileId, x, y);
     await Promise.all([
       api.setGameUserFocusedSocket(gameId, myUserId, null),
       api.setGameUserFocusedTileId(gameId, myUserId, null),
     ]);
-    const relevantTiles = getRelevantPlacedTiles(focusedSocket, placedTilesHash);
-    const points = relevantTiles.surroundingTiles.length + 1;
+    const points = getTilePoints({ ...focusedTile, ...focusedSocket }, placedTilesHash);
     await incrementUserScore(myUserId, points);
-    return incrementTurn();
+    await incrementTurn();
+    return drawTile(); // auto-draw enabled
   };
 
   const restart = async () => {
@@ -132,6 +136,7 @@ const useCreateGameVM = ({ gameId }) => {
     hasStarted,
     isMyTurn,
     justBecameMyTurn,
+    longestRoad,
     myTiles,
     myTilesInHand,
     placedTiles,

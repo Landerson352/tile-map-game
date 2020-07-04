@@ -11,7 +11,7 @@ export const EDGES = {
   oooo: { weight: 2 },
   cooo: { weight: 6 },
   ccoo: { weight: 12 },
-  ccco: { weight: 12000, canBeOverWater: true },
+  ccco: { weight: 12, canBeOverWater: true },
   cccc: { weight: 9, canBeOverWater: true },
   coco: { weight: 12, canBeOverWater: true },
 };
